@@ -2,6 +2,7 @@ from typing import Literal
 
 import discord
 
+from discord import app_commands
 from discord.ext import commands
 from config import TOKEN, HOST_ROLE_ID
 from data.database import create_tables
@@ -30,4 +31,17 @@ async def sync(ctx: commands.Context, scope: Literal["global", "guild"] = "guild
         synced = await bot.tree.sync()
         await ctx.send(f"{len(synced)} command(s) synced globally.")
 
+@app_commands.command(name="setup", description="Configure your server for War Games.")
+@app_commands.describe(host_role="The role that will be assigned to hosts.", result_channel="The channel where game results will be posted.")
+@app_commands.rename(host_role="host-role", result_channel="result-channel")
+@app_commands.default_permissions(administrator=True)
+@app_commands.checks.has_permissions(administrator=True)
+@app_commands.guild_only()
+async def setup(interaction: discord.Interaction, host_role: discord.Role, result_channel: discord.TextChannel):
+    await interaction.response.send_message(f"Setting up your server for War Games with host role {host_role.name} and result channel {result_channel.name}.", ephemeral=True)
+
+bot.tree.add_command(setup)
+
+
 bot.run(TOKEN)
+
