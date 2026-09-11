@@ -2,8 +2,10 @@ from typing import Literal
 
 import discord
 
+from discord import app_commands
 from discord.ext import commands
 from config import TOKEN, HOST_ROLE_ID
+from data.database import configure_guild, create_tables, get_guild
 
 class WarGamesBot(commands.Bot):
     def __init__(self):
@@ -11,6 +13,10 @@ class WarGamesBot(commands.Bot):
         intents = discord.Intents.default()
         intents.message_content = True
         super().__init__(command_prefix="!", intents=intents)
+
+    async def setup_hook(self):
+        await create_tables()
+        await self.load_extension("commands.setup") 
 
 bot = WarGamesBot()
 
@@ -27,3 +33,4 @@ async def sync(ctx: commands.Context, scope: Literal["global", "guild"] = "guild
         await ctx.send(f"{len(synced)} command(s) synced globally.")
 
 bot.run(TOKEN)
+
