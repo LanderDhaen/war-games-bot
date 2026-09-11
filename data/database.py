@@ -12,8 +12,8 @@ class Guild(db.Model):
     host_role_id = IntegerField()
     result_channel_id = IntegerField()
 
-    async def create_season(self, name: str, team_size: int) -> Season:
-        return await Season.acreate(name=name, team_size = team_size, guild=self)
+    async def create_season(self, name: str, code: str, team_size: int) -> Season:
+        return await Season.acreate(name=name, code=code, team_size = team_size, guild=self)
 
 async def get_guild(guild_id: int) -> Guild | None:
     return await Guild.aget_or_none(Guild.guild_id == guild_id)
@@ -38,9 +38,13 @@ async def configure_guild(guild_id: int, code: str, host_role_id: int, result_ch
 ## Season
 
 class Season(db.Model):
-    name = CharField()
+    name = TextField()
+    code = TextField(unique=True)
     team_size = IntegerField()
     guild = ForeignKeyField(Guild, backref="seasons")
+
+async def is_season_code_available(guild: Guild, code: str) -> bool:
+    return await Season.aget_or_none((Season.guild == guild) & (Season.code == code)) is None
 
 
 async def create_tables():
