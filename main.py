@@ -17,6 +17,7 @@ class WarGamesBot(commands.Bot):
     async def setup_hook(self):
         await create_tables()
         await self.load_extension("commands.setup") 
+        await self.load_extension("commands.season")
 
 bot = WarGamesBot()
 

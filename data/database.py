@@ -26,6 +26,13 @@ async def configure_guild(guild_id: int, host_role_id: int, result_channel_id: i
 
     return guild
 
+## Season
+
+class Season(db.Model):
+    name = CharField()
+    guild_id = ForeignKeyField(Guild, backref="seasons")
+
+
 async def create_tables():
     async with db:
         await db.acreate_tables([Guild], safe=True)
