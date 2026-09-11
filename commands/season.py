@@ -28,8 +28,10 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
 
     @app_commands.command(name="schedule", description="Schedule a new season for War Games.")
     @app_commands.describe(name="The name of the season to schedule.")
+    @app_commands.describe(team_size="The number of players in a team.")
+    @app_commands.rename(team_size="team-size")
     @app_commands.check(host_only)
-    async def schedule_season(self, interaction: discord.Interaction, name: str):
+    async def schedule_season(self, interaction: discord.Interaction, name: str, team_size: discord.app_commands.Range[int, 1]):
 
         guild = await get_guild(interaction.guild.id)
 
@@ -44,13 +46,17 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
 
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        season = await guild.create_season(name)
+        season = await guild.create_season(name, team_size)
 
         embed = discord.Embed(
             title="Season scheduled",
-            description=f"{season.name} has been scheduled for **{interaction.guild.name}**.",
+            description=f"A new War Games season has been scheduled for **{interaction.guild.name}**:",
             color=discord.Color.green()
         )
+
+        embed.add_field(name="Name", value=f"{season.name}", inline=False)
+        embed.add_field(name="Format", value=f"{season.team_size} vs {season.team_size}", inline=False)
+
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
