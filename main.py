@@ -5,7 +5,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from config import TOKEN, HOST_ROLE_ID
-from data.database import create_tables
+from data.database import configure_guild, create_tables, get_guild
 
 class WarGamesBot(commands.Bot):
     def __init__(self):
@@ -38,7 +38,10 @@ async def sync(ctx: commands.Context, scope: Literal["global", "guild"] = "guild
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.guild_only()
 async def setup(interaction: discord.Interaction, host_role: discord.Role, result_channel: discord.TextChannel):
-    await interaction.response.send_message(f"Setting up your server for War Games with host role {host_role.name} and result channel {result_channel.name}.", ephemeral=True)
+
+    guild = await configure_guild(interaction.guild.id, host_role.id, result_channel.id)
+
+    await interaction.response.send_message(f"Setting up your server for War Games with host role {guild.host_role_id} and result channel {guild.result_channel_id}.", ephemeral=True)
 
 bot.tree.add_command(setup)
 
