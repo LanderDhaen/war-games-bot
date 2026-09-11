@@ -1,3 +1,4 @@
+from __future__ import annotations
 from peewee import *
 from playhouse.pwasyncio import AsyncSqliteDatabase
 
@@ -9,6 +10,9 @@ class Guild(db.Model):
     guild_id = IntegerField(primary_key=True)
     host_role_id = IntegerField()
     result_channel_id = IntegerField()
+
+    async def create_season(self, name: str) -> Season:
+        return await Season.acreate(name=name, guild_id=self)
 
 async def get_guild(guild_id: int) -> Guild | None:
     return await Guild.aget_or_none(Guild.guild_id == guild_id)
@@ -35,4 +39,4 @@ class Season(db.Model):
 
 async def create_tables():
     async with db:
-        await db.acreate_tables([Guild], safe=True)
+        await db.acreate_tables([Guild, Season], safe=True)
