@@ -52,6 +52,27 @@ class Guild(BaseModel):
 
         return await db.list(query)
 
+    async def get_seasons(self) -> list[Season]:
+        query = (
+            Season.select()
+            .where(Season.guild == self)
+            .order_by(Season.starts_at.desc())
+        )
+        return await db.list(query)
+
+    async def get_active_season(self, season_id: int) -> Season | None:
+        return await Season.aget_or_none(
+            (Season.id == season_id)
+            & (Season.guild == self)
+            & (Season.status == SeasonStatus.ACTIVE)
+        )
+
+    async def get_season(self, season_id: int) -> Season | None:
+        return await Season.aget_or_none(
+            (Season.id == season_id)
+            & (Season.guild == self)
+        )
+
     async def finish_season(self, season_id: int) -> Season | None:
         query = (
             Season.update(status=SeasonStatus.FINISHED)
@@ -110,6 +131,96 @@ class Season(BaseModel):
     def __str__(self) -> str:
         return f"{self.name} • {self.starts_at:%b %Y}"
 
+    async def create_team(self, name: str) -> Team:
+        return await Team.acreate(name=name, season=self)
+
+    async def get_teams(self) -> list[Team]:
+        query = Team.select().where(Team.season == self).order_by(Team.name)
+        return await db.list(query)
+
+    async def get_team(self, team_id: int) -> Team | None:
+        return await Team.aget_or_none(
+            (Team.id == team_id)
+            & (Team.season == self)
+        )
+
+    async def has_player(self, user_id: int) -> bool:
+        query = TeamMember.select().where(
+            (TeamMember.season == self)
+            & (TeamMember.user_id == user_id)
+        )
+        return await db.exists(query)
+
+    async def delete_team(self, team_id: int) -> Team | None:
+        query = (
+            Team.delete()
+            .where(
+                (Team.id == team_id)
+                & (Team.season == self)
+            )
+            .returning(Team)
+        )
+        teams = await db.list(query)
+        return teams[0] if teams else None
+
+
+## Team
+
+class Team(BaseModel):
+    id = AutoField()
+    name = CharField(max_length=100, collation="NOCASE")
+    season = ForeignKeyField(Season, backref="teams", on_delete="CASCADE")
+
+    class Meta:
+        indexes = (
+            (("season", "name"), True),
+        )
+
+    async def get_member_count(self) -> int:
+        query = TeamMember.select().where(TeamMember.team == self)
+        return await db.count(query)
+
+    async def get_members(self) -> list[TeamMember]:
+        query = (
+            TeamMember.select()
+            .where(TeamMember.team == self)
+            .order_by(TeamMember.id)
+        )
+        return await db.list(query)
+
+    async def add_player(self, user_id: int) -> TeamMember:
+        return await TeamMember.acreate(
+            season_id=self.season_id,
+            team=self,
+            user_id=user_id,
+        )
+
+    async def remove_player(self, user_id: int) -> TeamMember | None:
+        query = (
+            TeamMember.delete()
+            .where(
+                (TeamMember.season == self.season_id)
+                & (TeamMember.team == self)
+                & (TeamMember.user_id == user_id)
+            )
+            .returning(TeamMember)
+        )
+        members = await db.list(query)
+        return members[0] if members else None
+
+## Team Member
+
+class TeamMember(BaseModel):
+    id = AutoField()
+    user_id = BigIntegerField()
+    season = ForeignKeyField(Season, backref="members", on_delete="CASCADE")
+    team = ForeignKeyField(Team, backref="members", on_delete="CASCADE")
+
+    class Meta:
+        indexes = (
+            (("season", "user_id"), True),
+        )
+
 async def create_tables():
     async with db:
-        await db.acreate_tables([Guild, Season], safe=True)
+        await db.acreate_tables([Guild, Season, Team, TeamMember], safe=True)
