@@ -5,18 +5,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from config import TOKEN
-from core.embeds import (
-    InvalidGuildConfigurationEmbed,
-    InvalidSeasonStartEmbed,
-    MissingConfigurationEmbed,
-    MissingHostRoleEmbed,
-)
-from core.errors import (
-    InvalidGuildConfiguration,
-    InvalidSeasonStart,
-    MissingGuildConfiguration,
-    MissingHostRole,
-)
+from core.errors import WarGamesError
 from data.database import create_tables
 
 class WarGamesBot(commands.Bot):
@@ -49,28 +38,15 @@ async def tree_on_error(
     interaction: discord.Interaction,
     error: app_commands.AppCommandError,
 ):
-    if isinstance(error, MissingGuildConfiguration):
-        is_admin = (
-            isinstance(interaction.user, discord.Member)
-            and interaction.user.guild_permissions.administrator
+    if isinstance(error, WarGamesError):
+        embed = discord.Embed(
+            title=error.title,
+            description=error.message,
+            color=discord.Color.red(),
         )
-        embed = MissingConfigurationEmbed(is_admin=is_admin)
         await send_error_embed(interaction, embed)
-        return
-
-    if isinstance(error, MissingHostRole):
-        await send_error_embed(interaction, MissingHostRoleEmbed())
-        return
-
-    if isinstance(error, InvalidGuildConfiguration):
-        await send_error_embed(interaction, InvalidGuildConfigurationEmbed())
-        return
-
-    if isinstance(error, InvalidSeasonStart):
-        await send_error_embed(interaction, InvalidSeasonStartEmbed())
-        return
-
-    raise error
+    else:
+        raise error
 
 @bot.command(name="sync")
 @commands.guild_only()
