@@ -78,6 +78,10 @@ class PlayerAlreadyAssigned(UserFacingError):
     title = "Invalid Configuration"
     message = "This player already belongs to a team in this season."
 
+class PlayerNotInTeam(UserFacingError):
+    title = "Invalid Configuration"
+    message = "This player does not belong to this team."
+
 class TeamFull(UserFacingError):
     title = "Invalid Configuration"
     message = "This team is already full."

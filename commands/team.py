@@ -4,7 +4,10 @@ from discord import app_commands
 from discord.ext import commands
 from peewee import IntegrityError
 
-from core.autocomplete import active_season_autocomplete, season_team_autocomplete
+from core.autocomplete import (
+    active_season_autocomplete,
+    season_team_autocomplete,
+)
 from core.checks import get_guild_config, requires_host
 from core.errors import (
     BotTeamMember,
@@ -14,6 +17,7 @@ from core.errors import (
     MissingParticipantRoleConfiguration,
     PlayerAddFailed,
     PlayerAlreadyAssigned,
+    PlayerNotInTeam,
     SeasonNotFound,
     TeamFull,
     TeamNotFound,
@@ -145,13 +149,10 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
             raise MissingParticipantRoleConfiguration()
 
         if participant_role not in member.roles:
-            raise MemberMissingParticipantRole(
-                member.mention,
-                participant_role.mention,
-            )
+            raise MemberMissingParticipantRole()
 
         if await season.has_player(member.id):
-            raise PlayerAlreadyAssigned(member.mention)
+            raise PlayerAlreadyAssigned()
 
         if await team.get_member_count() >= season.team_size:
             raise TeamFull()
@@ -164,6 +165,47 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         embed = discord.Embed(
             title="Player Added",
             description=f"{member.mention} has been added to **{team.name}** for **{season}**.",
+            color=discord.Color.green(),
+        )
+
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="remove-player", description="Remove a player from a team.")
+    @app_commands.describe(
+        season_id="The season the team participates in.",
+        team_id="The team to remove the player from.",
+        member="The name of the player to remove.",
+    )
+    @app_commands.rename(season_id="season", team_id="team")
+    @app_commands.autocomplete(
+        season_id=active_season_autocomplete,
+        team_id=season_team_autocomplete,
+    )
+    @requires_host()
+    async def remove_player(
+        self,
+        interaction: discord.Interaction,
+        season_id: int,
+        team_id: int,
+        member: discord.Member,
+    ):
+        guild = await get_guild_config(interaction.guild)
+        season = await guild.get_active_season(season_id)
+
+        if season is None:
+            raise SeasonNotFound()
+
+        team = await season.get_team(team_id)
+
+        if team is None:
+            raise TeamNotFound()
+
+        if not await season.remove_player(team, member.id):
+            raise PlayerNotInTeam()
+
+        embed = discord.Embed(
+            title="Player Removed",
+            description=f"{member.mention} has been removed from **{team.name}** for **{season}**.",
             color=discord.Color.green(),
         )
 

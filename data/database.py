@@ -144,6 +144,14 @@ class Season(BaseModel):
             user_id=user_id,
         )
 
+    async def remove_player(self, team: Team, user_id: int) -> bool:
+        query = TeamMember.delete().where(
+            (TeamMember.season == self)
+            & (TeamMember.team == team)
+            & (TeamMember.user_id == user_id)
+        )
+        return await query.aexecute() > 0
+
     async def delete_team(self, team_id: int) -> Team | None:
         query = (
             Team.delete()
@@ -172,7 +180,6 @@ class Team(BaseModel):
     async def get_member_count(self) -> int:
         query = TeamMember.select().where(TeamMember.team == self)
         return await db.count(query)
-
 
 ## Team Member
 
