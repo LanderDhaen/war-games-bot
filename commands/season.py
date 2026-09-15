@@ -54,7 +54,7 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
         except ValueError:
             embed = discord.Embed(
                 title="Invalid Configuration",
-                description="Use an ISO date and time, for example `2026-09-20 19:00`.",
+                description="This is not a valid date and time. Please use the ISO format, for example `2026-09-20 19:00`.",
                 color=discord.Color.red()
             )
 
@@ -68,7 +68,7 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
             color=discord.Color.green()
         )
 
-        embed.add_field(name="Name used for the season", value=f"{season.name}", inline=False)
+        embed.add_field(name="Name used for the season", value=str(season), inline=False)
         embed.add_field(name="Format used for the season", value=f"{season.team_size} vs {season.team_size}", inline=False)
         embed.add_field(name="Starts at", value=discord.utils.format_dt(season.starts_at), inline=False)
 

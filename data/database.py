@@ -69,6 +69,9 @@ class Season(db.Model):
     status = SeasonStatusField(default=SeasonStatus.ACTIVE)
     guild = ForeignKeyField(Guild, backref="seasons")
 
+    def __str__(self) -> str:
+        return f"{self.name} • {self.starts_at:%b %Y}"
+
 
 async def create_tables():
     async with db:
