@@ -14,10 +14,10 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="create", description="Create a team for an active season.")
+    @app_commands.command(name="create", description="Create a new team for season of War Games.")
     @app_commands.describe(
-        season_id="The season to create the team in.",
-        name="The name of the team.",
+        season_id="The season where the team will participate.",
+        name="The name of the team to create.",
     )
     @app_commands.rename(season_id="season")
     @app_commands.autocomplete(season_id=active_season_autocomplete)
