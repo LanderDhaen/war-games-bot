@@ -1,11 +1,8 @@
-import re
-
 import discord
 
 from discord.ext import commands
 from discord import app_commands
-from data.database import configure_guild, is_guild_code_available
-from utils import slugify
+from data.database import configure_guild
 
 
 class Setup(commands.GroupCog, group_name="setup", description="Configure your server for War Games."):
@@ -13,32 +10,24 @@ class Setup(commands.GroupCog, group_name="setup", description="Configure your s
         self.bot = bot
 
     @app_commands.command(name="server", description="Configure your server for War Games.")
-    @app_commands.describe(code="The code that will be used to identify your server.", host_role="The role that will be assigned to hosts.", result_channel="The channel where game results will be posted.")
-    @app_commands.rename(host_role="host-role", result_channel="result-channel")
+    @app_commands.describe(host_role="The role that will be assigned to hosts.", participant_role="The role that will be assigned to participants.", results_channel="The channel where game results will be posted.")
+    @app_commands.rename(host_role="host-role", participant_role="participant-role", results_channel="results-channel")
     @app_commands.default_permissions(administrator=True)
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.guild_only()
-    async def setup_server(self, interaction: discord.Interaction, code: str, host_role: discord.Role, result_channel: discord.TextChannel):
-        
-        code = slugify(code)
-
-        is_available = await is_guild_code_available(code)
-
-        if not is_available:
-            embed = discord.Embed(
-                title="Invalid Configuration",
-                description=f"Another server is already using `{code}`. Please choose a different code.",
-                color=discord.Color.red()
-            )
-
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        guild = await configure_guild(interaction.guild.id, code, host_role.id, result_channel.id)
+    async def setup_server(self, interaction: discord.Interaction, host_role: discord.Role, participant_role: discord.Role, results_channel: discord.TextChannel):
+        guild = await configure_guild(
+            interaction.guild.id,
+            host_role.id,
+            participant_role.id,
+            results_channel.id,
+        )
 
         updated_role = interaction.guild.get_role(guild.host_role_id)
-        updated_channel = interaction.guild.get_channel(guild.result_channel_id)
+        updated_participant_role = interaction.guild.get_role(guild.participant_role_id)
+        updated_channel = interaction.guild.get_channel(guild.results_channel_id)
 
-        if not updated_role or not updated_channel:
+        if not updated_role or not updated_participant_role or not updated_channel:
 
             embed = discord.Embed(
                 title="Invalid Configuration",
@@ -54,8 +43,8 @@ class Setup(commands.GroupCog, group_name="setup", description="Configure your s
             color=discord.Color.green()
         )
 
-        embed.add_field(name="Code used to identify the server", value=f"`{guild.code}`", inline=False)
         embed.add_field(name="Role assigned to hosts", value=f"{updated_role.mention}", inline=False)
+        embed.add_field(name="Role assigned to participants", value=f"{updated_participant_role.mention}", inline=False)
         embed.add_field(name="Channel used to post match results", value=f"{updated_channel.mention}", inline=False)
 
         await interaction.response.send_message(embed=embed)
