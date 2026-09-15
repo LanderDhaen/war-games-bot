@@ -4,7 +4,7 @@ from datetime import datetime
 from peewee import *
 from playhouse.pwasyncio import AsyncSqliteDatabase
 
-from enums import SeasonStatus
+from data.enums import SeasonStatus
 
 db = AsyncSqliteDatabase("db/war-games.db")
 

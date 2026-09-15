@@ -2,6 +2,7 @@ import discord
 
 from discord.ext import commands
 from discord import app_commands
+from core.errors import InvalidGuildConfiguration
 from data.database import configure_guild
 
 
@@ -16,6 +17,10 @@ class Setup(commands.GroupCog, group_name="setup", description="Configure your s
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.guild_only()
     async def setup_server(self, interaction: discord.Interaction, host_role: discord.Role, participant_role: discord.Role, results_channel: discord.TextChannel):
+    
+        if interaction.guild is None:
+            raise app_commands.NoPrivateMessage()
+
         guild = await configure_guild(
             interaction.guild.id,
             host_role.id,
@@ -28,14 +33,7 @@ class Setup(commands.GroupCog, group_name="setup", description="Configure your s
         updated_channel = interaction.guild.get_channel(guild.results_channel_id)
 
         if not updated_role or not updated_participant_role or not updated_channel:
-
-            embed = discord.Embed(
-                title="Invalid Configuration",
-                description="That role or channel no longer exists in this server. Use `/setup server` to reconfigure the settings.",
-                color=discord.Color.red()
-            )
-
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            raise InvalidGuildConfiguration()
 
         embed = discord.Embed(
             title="Server Configured",
