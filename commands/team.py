@@ -4,6 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 from peewee import IntegrityError
 
+from core.autocomplete import active_season_autocomplete
 from core.checks import get_guild_config, requires_host
 from core.errors import InvalidSeasonConfiguration, InvalidTeamConfiguration
 
@@ -12,20 +13,6 @@ from core.errors import InvalidSeasonConfiguration, InvalidTeamConfiguration
 class Team(commands.GroupCog, group_name="team", description="Manage teams for War Games."):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-
-    async def active_season_autocomplete(
-        self,
-        interaction: discord.Interaction,
-        current: str,
-    ) -> list[app_commands.Choice[int]]:
-        guild = await get_guild_config(interaction.guild)
-        seasons = await guild.get_active_seasons()
-
-        return [
-            app_commands.Choice(name=str(season)[:100], value=season.id)
-            for season in seasons
-            if current.casefold() in season.name.casefold()
-        ][:25]
 
     @app_commands.command(name="create", description="Create a team for an active season.")
     @app_commands.describe(

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from discord.ext import commands
 from discord import app_commands
 
+from core.autocomplete import active_season_autocomplete
 from core.checks import get_guild_config, requires_host
 from core.errors import InvalidSeasonConfiguration
 
@@ -70,23 +71,6 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
 
 
         await interaction.response.send_message(embed=embed)
-
-    async def active_season_autocomplete(
-        self,
-        interaction: discord.Interaction,
-        current: str,
-    ) -> list[app_commands.Choice[int]]:
-        if interaction.guild is None:
-            return []
-
-        guild = await get_guild_config(interaction.guild)
-        seasons = await guild.get_active_seasons()
-
-        return [
-            app_commands.Choice(name=str(season)[:100], value=season.id)
-            for season in seasons
-            if current.casefold() in season.name.casefold()
-        ][:25]
 
     @app_commands.command(name="finish", description="Finish an active season for War Games.")
     @app_commands.describe(season_id="The season that should be updated.")
