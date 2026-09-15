@@ -45,6 +45,31 @@ class Guild(BaseModel):
             guild=self,
         )
 
+    async def get_active_seasons(self) -> list[Season]:
+        query = Season.select().where(
+            (Season.guild == self) & (Season.status == SeasonStatus.ACTIVE)
+        ).order_by(Season.starts_at.desc())
+
+        return await db.list(query)
+
+    async def finish_season(self, season_id: int) -> Season | None:
+        query = (
+            Season.update(status=SeasonStatus.FINISHED)
+            .where(
+                (Season.id == season_id)
+                & (Season.guild == self)
+                & (Season.status == SeasonStatus.ACTIVE)
+            )
+            .returning(Season)
+        )
+
+        seasons = await db.list(query)
+
+        if not seasons:
+            return None
+
+        return seasons[0]
+
 async def get_guild(guild_id: int) -> Guild | None:
     return await Guild.aget_or_none(Guild.guild_id == guild_id)
 
@@ -75,7 +100,8 @@ async def configure_guild(
 ## Season
 
 class Season(BaseModel):
-    name = TextField()
+    id = AutoField()
+    name = CharField(max_length=100)
     team_size = IntegerField()
     starts_at = DateTimeField()
     status = SeasonStatusField(default=SeasonStatus.ACTIVE)
@@ -83,7 +109,6 @@ class Season(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.name} • {self.starts_at:%b %Y}"
-
 
 async def create_tables():
     async with db:

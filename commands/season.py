@@ -71,6 +71,48 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
 
         await interaction.response.send_message(embed=embed)
 
+    async def active_season_autocomplete(
+        self,
+        interaction: discord.Interaction,
+        current: str,
+    ) -> list[app_commands.Choice[int]]:
+        if interaction.guild is None:
+            return []
+
+        guild = await get_guild_config(interaction.guild)
+        seasons = await guild.get_active_seasons()
+
+        return [
+            app_commands.Choice(name=str(season)[:100], value=season.id)
+            for season in seasons
+            if current.casefold() in season.name.casefold()
+        ][:25]
+
+    @app_commands.command(name="finish", description="Finish an active season for War Games.")
+    @app_commands.describe(season_id="The season that should be updated.")
+    @app_commands.rename(season_id="season")
+    @app_commands.autocomplete(season_id=active_season_autocomplete)
+    @requires_host()
+    async def finish_season(
+        self,
+        interaction: discord.Interaction,
+        season_id: int,
+    ):
+        guild = await get_guild_config(interaction.guild)
+        ended_season = await guild.finish_season(season_id)
+
+        if ended_season is None:
+            raise InvalidSeasonConfiguration(
+                "There's no active season with this ID."
+            )
+
+        embed = discord.Embed(
+            title="Season Updated",
+            description=f"The status of **{ended_season}** has been changed to **Finished**.",
+            color=discord.Color.green(),
+        )
+
+        await interaction.response.send_message(embed=embed)
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(Season(bot))
-
