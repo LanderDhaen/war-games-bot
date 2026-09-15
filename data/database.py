@@ -166,6 +166,14 @@ class Team(BaseModel):
         query = TeamMember.select().where(TeamMember.team == self)
         return await db.count(query)
 
+    async def get_members(self) -> list[TeamMember]:
+        query = (
+            TeamMember.select()
+            .where(TeamMember.team == self)
+            .order_by(TeamMember.id)
+        )
+        return await db.list(query)
+
     async def add_player(self, user_id: int) -> TeamMember:
         return await TeamMember.acreate(
             season_id=self.season_id,

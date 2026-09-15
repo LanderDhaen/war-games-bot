@@ -23,7 +23,6 @@ from core.errors import (
     TeamNotFound,
 )
 
-
 @app_commands.guild_only()
 class Team(commands.GroupCog, group_name="team", description="Manage teams for War Games."):
     def __init__(self, bot: commands.Bot):
@@ -68,6 +67,59 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         embed.add_field(name="Name", value=team.name, inline=False)
 
         await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="info", description="Display information about a team.")
+    @app_commands.describe(
+        season_id="The season the team participates in.",
+        team_id="The team to display.",
+    )
+    @app_commands.rename(season_id="season", team_id="team")
+    @app_commands.autocomplete(
+        season_id=active_season_autocomplete,
+        team_id=season_team_autocomplete,
+    )
+    async def team_info(
+        self,
+        interaction: discord.Interaction,
+        season_id: int,
+        team_id: int,
+    ):
+        guild = await get_guild_config(interaction.guild)
+        season = await guild.get_active_season(season_id)
+
+        if season is None:
+            raise SeasonNotFound()
+
+        team = await season.get_team(team_id)
+
+        if team is None:
+            raise TeamNotFound()
+
+        members = await team.get_members()
+
+        info_embed = discord.Embed(
+            title="Team Information",
+            description=f"The following team is participating in **{season}**.",
+            color=discord.Color.blue(),
+        )
+
+        info_embed.add_field(name="Name", value=team.name, inline=False)
+        info_embed.add_field(
+            name="Size",
+            value=f"{len(members)}/{season.team_size}",
+            inline=False,
+        )
+
+        players = "\n".join(
+            f"• <@{member.user_id}>" for member in members
+        ) or "*This team doesn't have any players.*"
+        info_embed.add_field(
+            name="Players",
+            value=players,
+            inline=False,
+        )
+
+        await interaction.response.send_message(embed=info_embed)
 
     @app_commands.command(name="delete", description="Delete a team from a season of War Games.")
     @app_commands.describe(

@@ -44,7 +44,7 @@ class InvalidSeasonName(UserFacingError):
 
 class InvalidSeasonTeamSize(UserFacingError):
     title = "Invalid Configuration"
-    message = "The team size must be between 1 and 50 players."
+    message = "The team size must be between 1 and 5 players."
 
 class InvalidSeasonStart(UserFacingError):
     title = "Invalid Configuration"

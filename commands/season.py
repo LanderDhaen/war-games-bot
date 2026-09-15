@@ -28,7 +28,7 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
         self,
         interaction: discord.Interaction,
         name: app_commands.Range[str, 1, 100],
-        team_size: app_commands.Range[int, 1, 50],
+        team_size: app_commands.Range[int, 1, 5],
         starts_at: str,
     ):
 
@@ -42,7 +42,7 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
         if not 1 <= len(name) <= 100:
             raise InvalidSeasonName()
 
-        if not 1 <= team_size <= 50:
+        if not 1 <= team_size <= 5:
             raise InvalidSeasonTeamSize()
 
         try:
