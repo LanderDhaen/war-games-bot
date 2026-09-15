@@ -52,6 +52,13 @@ class Guild(BaseModel):
 
         return await db.list(query)
 
+    async def get_active_season(self, season_id: int) -> Season | None:
+        return await Season.aget_or_none(
+            (Season.id == season_id)
+            & (Season.guild == self)
+            & (Season.status == SeasonStatus.ACTIVE)
+        )
+
     async def finish_season(self, season_id: int) -> Season | None:
         query = (
             Season.update(status=SeasonStatus.FINISHED)
@@ -110,6 +117,22 @@ class Season(BaseModel):
     def __str__(self) -> str:
         return f"{self.name} • {self.starts_at:%b %Y}"
 
+    async def create_team(self, name: str) -> Team:
+        return await Team.acreate(name=name, season=self)
+
+
+## Team
+
+class Team(BaseModel):
+    id = AutoField()
+    name = CharField(max_length=100, collation="NOCASE")
+    season = ForeignKeyField(Season, backref="teams", on_delete="CASCADE")
+
+    class Meta:
+        indexes = (
+            (("season", "name"), True),
+        )
+
 async def create_tables():
     async with db:
-        await db.acreate_tables([Guild, Season], safe=True)
+        await db.acreate_tables([Guild, Season, Team], safe=True)

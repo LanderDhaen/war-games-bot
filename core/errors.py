@@ -33,3 +33,8 @@ class InvalidGuildConfiguration(WarGamesError, app_commands.AppCommandError):
 class InvalidSeasonConfiguration(WarGamesError, app_commands.AppCommandError):
     title = "Invalid Season Configuration"
     message = "The season configuration is invalid."
+
+
+class InvalidTeamConfiguration(WarGamesError, app_commands.AppCommandError):
+    title = "Invalid Team Configuration"
+    message = "The team configuration is invalid."
