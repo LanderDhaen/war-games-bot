@@ -158,7 +158,7 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
             raise TeamFull()
 
         try:
-            await season.add_player(team, member.id)
+            await team.add_player(member.id)
         except IntegrityError:
             raise PlayerAddFailed() from None
 
@@ -200,7 +200,9 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         if team is None:
             raise TeamNotFound()
 
-        if not await season.remove_player(team, member.id):
+        removed_member = await team.remove_player(member.id)
+
+        if removed_member is None:
             raise PlayerNotInTeam()
 
         embed = discord.Embed(
