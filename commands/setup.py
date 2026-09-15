@@ -2,7 +2,11 @@ import discord
 
 from discord.ext import commands
 from discord import app_commands
-from core.errors import InvalidGuildConfiguration
+from core.errors import (
+    MissingHostRoleConfiguration,
+    MissingParticipantRoleConfiguration,
+    MissingResultsChannelConfiguration,
+)
 from data.database import configure_guild
 
 
@@ -33,22 +37,13 @@ class Setup(commands.GroupCog, group_name="setup", description="Configure your s
         updated_channel = interaction.guild.get_channel(guild.results_channel_id)
 
         if not updated_role:
-            raise InvalidGuildConfiguration(
-                "The host role you provided does not exist in this server. "
-                "Use `/setup server` to reconfigure the settings."
-            )
+            raise MissingHostRoleConfiguration()
 
         if not updated_participant_role:
-            raise InvalidGuildConfiguration(
-                "The participant role you provided does not exist in this server. "
-                "Use `/setup server` to reconfigure the settings."
-            )
+            raise MissingParticipantRoleConfiguration()
 
         if not updated_channel:
-            raise InvalidGuildConfiguration(
-                "The results channel you provided does not exist in this server. "
-                "Use `/setup server` to reconfigure the settings."
-            )
+            raise MissingResultsChannelConfiguration()
 
         embed = discord.Embed(
             title="Server Configured",

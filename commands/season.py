@@ -5,7 +5,12 @@ from discord import app_commands
 
 from core.autocomplete import active_season_autocomplete
 from core.checks import get_guild_config, requires_host
-from core.errors import InvalidSeasonConfiguration
+from core.errors import (
+    InvalidSeasonName,
+    InvalidSeasonStart,
+    InvalidSeasonTeamSize,
+    SeasonNotFound,
+)
 
 @app_commands.guild_only()
 class Season(commands.GroupCog, group_name="season", description="Manage seasons for War Games."):
@@ -35,22 +40,15 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
         name = name.strip()
 
         if not 1 <= len(name) <= 100:
-            raise InvalidSeasonConfiguration(
-                "The season name must contain between 1 and 100 characters."
-            )
+            raise InvalidSeasonName()
 
         if not 1 <= team_size <= 50:
-            raise InvalidSeasonConfiguration(
-                "The team size must be between 1 and 50 players."
-            )
+            raise InvalidSeasonTeamSize()
 
         try:
             parsed_starts_at = datetime.fromisoformat(starts_at)
         except ValueError:
-            raise InvalidSeasonConfiguration(
-                "This is not a valid date and time. Please use the ISO format, "
-                "for example `2026-09-20 19:00`."
-            ) from None
+            raise InvalidSeasonStart() from None
 
         if parsed_starts_at.tzinfo is None:
             parsed_starts_at = parsed_starts_at.replace(tzinfo=timezone.utc)
@@ -86,9 +84,7 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
         ended_season = await guild.finish_season(season_id)
 
         if ended_season is None:
-            raise InvalidSeasonConfiguration(
-                "There's no active season with this ID."
-            )
+            raise SeasonNotFound()
 
         embed = discord.Embed(
             title="Season Updated",

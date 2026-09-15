@@ -7,9 +7,16 @@ from peewee import IntegrityError
 from core.autocomplete import active_season_autocomplete, season_team_autocomplete
 from core.checks import get_guild_config, requires_host
 from core.errors import (
-    InvalidGuildConfiguration,
-    InvalidSeasonConfiguration,
-    InvalidTeamConfiguration,
+    BotTeamMember,
+    DuplicateTeamName,
+    InvalidTeamName,
+    MemberMissingParticipantRole,
+    MissingParticipantRoleConfiguration,
+    PlayerAddFailed,
+    PlayerAlreadyAssigned,
+    SeasonNotFound,
+    TeamFull,
+    TeamNotFound,
 )
 
 
@@ -36,23 +43,17 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         season = await guild.get_active_season(season_id)
 
         if season is None:
-            raise InvalidSeasonConfiguration(
-                "There's no active season with this ID."
-            )
+            raise SeasonNotFound()
 
         name = name.strip()
 
         if not 1 <= len(name) <= 100:
-            raise InvalidTeamConfiguration(
-                "The team name must contain between 1 and 100 characters."
-            )
+            raise InvalidTeamName()
 
         try:
             team = await season.create_team(name)
         except IntegrityError:
-            raise InvalidTeamConfiguration(
-                "A team with this name already exists in this season."
-            ) from None
+            raise DuplicateTeamName() from None
 
         embed = discord.Embed(
             title="Team Created",
@@ -85,16 +86,12 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         season = await guild.get_active_season(season_id)
 
         if season is None:
-            raise InvalidSeasonConfiguration(
-                "There's no active season with this ID."
-            )
+            raise SeasonNotFound()
 
         deleted_team = await season.delete_team(team_id)
 
         if deleted_team is None:
-            raise InvalidTeamConfiguration(
-                "There's no team with this ID in this season."
-            )
+            raise TeamNotFound()
 
         embed = discord.Embed(
             title="Team Deleted",
@@ -132,51 +129,37 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         season = await guild.get_active_season(season_id)
 
         if season is None:
-            raise InvalidSeasonConfiguration(
-                "There's no active season with this ID."
-            )
+            raise SeasonNotFound()
 
         team = await season.get_team(team_id)
 
         if team is None:
-            raise InvalidTeamConfiguration(
-                "There's no team with this ID in this season."
-            )
+            raise TeamNotFound()
 
         if member.bot:
-            raise InvalidTeamConfiguration(
-                "Bots cannot be added to a team."
-            )
+            raise BotTeamMember()
 
         participant_role = discord_guild.get_role(guild.participant_role_id)
 
         if participant_role is None:
-            raise InvalidGuildConfiguration(
-                "The configured participant role no longer exists. "
-                "Use `/setup server` to reconfigure the settings."
-            )
+            raise MissingParticipantRoleConfiguration()
 
         if participant_role not in member.roles:
-            raise InvalidTeamConfiguration(
-                f"{member.mention} needs the {participant_role.mention} role before joining a team."
+            raise MemberMissingParticipantRole(
+                member.mention,
+                participant_role.mention,
             )
 
         if await season.has_player(member.id):
-            raise InvalidTeamConfiguration(
-                f"{member.mention} already belongs to a team in this season."
-            )
+            raise PlayerAlreadyAssigned(member.mention)
 
         if await team.get_member_count() >= season.team_size:
-            raise InvalidTeamConfiguration(
-                "This team is already full."
-            )
+            raise TeamFull()
 
         try:
             await season.add_player(team, member.id)
         except IntegrityError:
-            raise InvalidTeamConfiguration(
-                "The player could not be added to this team."
-            ) from None
+            raise PlayerAddFailed() from None
 
         embed = discord.Embed(
             title="Player Added",

@@ -1,7 +1,11 @@
 import discord
 from discord import app_commands
 
-from core.errors import MissingGuildConfiguration, MissingHostRole
+from core.errors import (
+    MissingGuildConfiguration,
+    MissingHostRole,
+    MissingHostRoleConfiguration,
+)
 from data.database import Guild as GuildConfig
 from data.database import get_guild
 
@@ -36,9 +40,11 @@ def requires_host():
         guild = await get_guild_config(discord_guild)
         host_role = discord_guild.get_role(guild.host_role_id)
 
+        if host_role is None:
+            raise MissingHostRoleConfiguration()
+
         if (
-            host_role is None
-            or not isinstance(interaction.user, discord.Member)
+            not isinstance(interaction.user, discord.Member)
             or host_role not in interaction.user.roles
         ):
             raise MissingHostRole()

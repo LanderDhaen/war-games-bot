@@ -1,11 +1,17 @@
 from typing import Literal
+import logging
 
 import discord
 
 from discord import app_commands
 from discord.ext import commands
 from config import TOKEN
-from core.errors import WarGamesError
+from core.errors import (
+    GuildOnly,
+    MissingAdministratorPermission,
+    UnexpectedCommandError,
+    UserFacingError,
+)
 from data.database import create_tables
 
 class WarGamesBot(commands.Bot):
@@ -22,6 +28,7 @@ class WarGamesBot(commands.Bot):
         await self.load_extension("commands.team")
 
 bot = WarGamesBot()
+logger = logging.getLogger(__name__)
 
 
 async def send_error_embed(
@@ -39,15 +46,25 @@ async def tree_on_error(
     interaction: discord.Interaction,
     error: app_commands.AppCommandError,
 ):
-    if isinstance(error, WarGamesError):
-        embed = discord.Embed(
-            title=error.title,
-            description=error.message,
-            color=discord.Color.red(),
-        )
-        await send_error_embed(interaction, embed)
+    if isinstance(error, app_commands.CommandInvokeError):
+        error = error.original
+
+    if isinstance(error, app_commands.MissingPermissions):
+        response_error = MissingAdministratorPermission()
+    elif isinstance(error, app_commands.NoPrivateMessage):
+        response_error = GuildOnly()
+    elif isinstance(error, UserFacingError):
+        response_error = error
     else:
-        raise error
+        logger.error("Unhandled application command error", exc_info=error)
+        response_error = UnexpectedCommandError()
+
+    embed = discord.Embed(
+        title=response_error.title,
+        description=response_error.message,
+        color=discord.Color.red(),
+    )
+    await send_error_embed(interaction, embed)
 
 @bot.command(name="sync")
 @commands.guild_only()
