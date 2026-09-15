@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from discord.ext import commands
 from discord import app_commands
 
-from core.autocomplete import active_season_autocomplete
+from core.autocomplete import active_season_autocomplete, season_autocomplete
 from core.checks import get_guild_config, requires_host
 from core.errors import (
     InvalidSeasonName,
@@ -11,6 +11,7 @@ from core.errors import (
     InvalidSeasonTeamSize,
     SeasonNotFound,
 )
+from data.enums import SeasonStatus
 
 @app_commands.guild_only()
 class Season(commands.GroupCog, group_name="season", description="Manage seasons for War Games."):
@@ -70,6 +71,51 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
 
         await interaction.response.send_message(embed=embed)
 
+    @app_commands.command(name="info", description="Display information about a season.")
+    @app_commands.describe(season_id="The season to display.")
+    @app_commands.rename(season_id="season")
+    @app_commands.autocomplete(season_id=season_autocomplete)
+    async def season_info(
+        self,
+        interaction: discord.Interaction,
+        season_id: int,
+    ):  
+
+        discord_guild = interaction.guild
+
+        if discord_guild is None:
+            raise app_commands.NoPrivateMessage()
+        
+        guild = await get_guild_config(discord_guild)
+        season = await guild.get_season(season_id)
+
+        if season is None:
+            raise SeasonNotFound()
+
+        teams = await season.get_teams()
+
+        is_finished = season.status == SeasonStatus.FINISHED
+
+        embed = discord.Embed(
+            title="Season Information",
+            description=f"The following season {('was hosted' if is_finished else 'is going on')} in **{discord_guild.name}**.",
+            color=discord.Color.blue(),
+        )
+        embed.add_field(name="Name", value=str(season), inline=False)
+        embed.add_field(
+            name="Format",
+            value=f"{season.team_size} vs {season.team_size}",
+            inline=False,
+        )
+        embed.add_field(
+            name="Status",
+            value=str(season.status),
+            inline=False,
+        )
+        embed.add_field(name="Teams", value=str(len(teams)), inline=False)
+
+        await interaction.response.send_message(embed=embed)
+
     @app_commands.command(name="finish", description="Finish an active season for War Games.")
     @app_commands.describe(season_id="The season that should be updated.")
     @app_commands.rename(season_id="season")
@@ -80,7 +126,12 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
         interaction: discord.Interaction,
         season_id: int,
     ):
-        guild = await get_guild_config(interaction.guild)
+        discord_guild = interaction.guild
+
+        if discord_guild is None:
+            raise app_commands.NoPrivateMessage()
+
+        guild = await get_guild_config(discord_guild)
         ended_season = await guild.finish_season(season_id)
 
         if ended_season is None:

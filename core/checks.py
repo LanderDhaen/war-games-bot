@@ -10,10 +10,7 @@ from data.database import Guild as GuildConfig
 from data.database import get_guild
 
 
-async def get_guild_config(guild: discord.Guild | None) -> GuildConfig:
-    if guild is None:
-        raise app_commands.NoPrivateMessage()
-
+async def get_guild_config(guild: discord.Guild) -> GuildConfig:
     config = await get_guild(guild.id)
 
     if config is None:
@@ -24,7 +21,13 @@ async def get_guild_config(guild: discord.Guild | None) -> GuildConfig:
 
 def requires_config():
     async def predicate(interaction: discord.Interaction) -> bool:
-        await get_guild_config(interaction.guild)
+
+        discord_guild = interaction.guild
+
+        if discord_guild is None:
+            raise app_commands.NoPrivateMessage()
+
+        await get_guild_config(discord_guild)
         return True
 
     return app_commands.check(predicate)

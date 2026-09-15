@@ -19,6 +19,20 @@ async def active_season_autocomplete(
     ][:25]
 
 
+async def season_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[int]]:
+    guild = await get_guild_config(interaction.guild)
+    seasons = await guild.get_seasons()
+
+    return [
+        app_commands.Choice(name=str(season)[:100], value=season.id)
+        for season in seasons
+        if current.casefold() in season.name.casefold()
+    ][:25]
+
+
 async def season_team_autocomplete(
     interaction: discord.Interaction,
     current: str,

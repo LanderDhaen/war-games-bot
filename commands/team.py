@@ -42,7 +42,13 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         season_id: int,
         name: app_commands.Range[str, 1, 100],
     ):
-        guild = await get_guild_config(interaction.guild)
+
+        discord_guild = interaction.guild
+
+        if discord_guild is None:
+            raise app_commands.NoPrivateMessage()
+        
+        guild = await get_guild_config(discord_guild)
         season = await guild.get_active_season(season_id)
 
         if season is None:
@@ -84,7 +90,13 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         season_id: int,
         team_id: int,
     ):
-        guild = await get_guild_config(interaction.guild)
+
+        discord_guild = interaction.guild
+
+        if discord_guild is None:
+            raise app_commands.NoPrivateMessage()
+        
+        guild = await get_guild_config(discord_guild)
         season = await guild.get_active_season(season_id)
 
         if season is None:
@@ -138,7 +150,13 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         season_id: int,
         team_id: int,
     ):
-        guild = await get_guild_config(interaction.guild)
+
+        discord_guild = interaction.guild
+
+        if discord_guild is None:
+            raise app_commands.NoPrivateMessage()
+        
+        guild = await get_guild_config(discord_guild)
         season = await guild.get_active_season(season_id)
 
         if season is None:
@@ -241,7 +259,11 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         team_id: int,
         member: discord.Member,
     ):
-        guild = await get_guild_config(interaction.guild)
+        discord_guild = interaction.guild
+        if discord_guild is None:
+            raise app_commands.NoPrivateMessage()
+
+        guild = await get_guild_config(discord_guild)
         season = await guild.get_active_season(season_id)
 
         if season is None:

@@ -52,11 +52,25 @@ class Guild(BaseModel):
 
         return await db.list(query)
 
+    async def get_seasons(self) -> list[Season]:
+        query = (
+            Season.select()
+            .where(Season.guild == self)
+            .order_by(Season.starts_at.desc())
+        )
+        return await db.list(query)
+
     async def get_active_season(self, season_id: int) -> Season | None:
         return await Season.aget_or_none(
             (Season.id == season_id)
             & (Season.guild == self)
             & (Season.status == SeasonStatus.ACTIVE)
+        )
+
+    async def get_season(self, season_id: int) -> Season | None:
+        return await Season.aget_or_none(
+            (Season.id == season_id)
+            & (Season.guild == self)
         )
 
     async def finish_season(self, season_id: int) -> Season | None:
