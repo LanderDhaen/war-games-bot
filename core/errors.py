@@ -5,7 +5,10 @@ class WarGamesError(Exception):
     title: str
     message: str
 
-    def __init__(self):
+    def __init__(self, description: str | None = None):
+        if description is not None:
+            self.message = description
+
         super().__init__(self.message)
 
 
@@ -23,16 +26,10 @@ class MissingHostRole(WarGamesError, app_commands.CheckFailure):
 
 
 class InvalidGuildConfiguration(WarGamesError, app_commands.AppCommandError):
-    title = "Invalid Configuration"
-    message = (
-        "That role or channel no longer exists in this server. "
-        "Use `/setup server` to reconfigure the settings."
-    )
+    title = "Invalid Guild Configuration"
+    message = "The guild configuration is invalid. Use `/setup server` to reconfigure the settings."
 
 
-class InvalidSeasonStart(WarGamesError, app_commands.AppCommandError):
-    title = "Invalid Configuration"
-    message = (
-        "This is not a valid date and time. Please use the ISO format, "
-        "for example `2026-09-20 19:00`."
-    )
+class InvalidSeasonConfiguration(WarGamesError, app_commands.AppCommandError):
+    title = "Invalid Season Configuration"
+    message = "The season configuration is invalid."

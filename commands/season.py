@@ -1,10 +1,10 @@
 import discord
-from datetime import datetime
+from datetime import datetime, timezone
 from discord.ext import commands
 from discord import app_commands
 
 from core.checks import get_guild_config, requires_host
-from core.errors import InvalidSeasonStart
+from core.errors import InvalidSeasonConfiguration
 
 @app_commands.guild_only()
 class Season(commands.GroupCog, group_name="season", description="Manage seasons for War Games."):
@@ -18,17 +18,43 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
     @app_commands.rename(team_size="team-size")
     @app_commands.rename(starts_at="starts-at")
     @requires_host()
-    async def schedule_season(self, interaction: discord.Interaction, name: str, team_size: discord.app_commands.Range[int, 1], starts_at: str):
+    async def schedule_season(
+        self,
+        interaction: discord.Interaction,
+        name: app_commands.Range[str, 1, 100],
+        team_size: app_commands.Range[int, 1, 50],
+        starts_at: str,
+    ):
 
         if interaction.guild is None:
             raise app_commands.NoPrivateMessage()
 
         guild = await get_guild_config(interaction.guild)
 
+        name = name.strip()
+
+        if not 1 <= len(name) <= 100:
+            raise InvalidSeasonConfiguration(
+                "The season name must contain between 1 and 100 characters."
+            )
+
+        if not 1 <= team_size <= 50:
+            raise InvalidSeasonConfiguration(
+                "The team size must be between 1 and 50 players."
+            )
+
         try:
             parsed_starts_at = datetime.fromisoformat(starts_at)
         except ValueError:
-            raise InvalidSeasonStart() from None
+            raise InvalidSeasonConfiguration(
+                "This is not a valid date and time. Please use the ISO format, "
+                "for example `2026-09-20 19:00`."
+            ) from None
+
+        if parsed_starts_at.tzinfo is None:
+            parsed_starts_at = parsed_starts_at.replace(tzinfo=timezone.utc)
+        else:
+            parsed_starts_at = parsed_starts_at.astimezone(timezone.utc)
 
         season = await guild.create_season(name, team_size, parsed_starts_at)
 

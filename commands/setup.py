@@ -32,8 +32,23 @@ class Setup(commands.GroupCog, group_name="setup", description="Configure your s
         updated_participant_role = interaction.guild.get_role(guild.participant_role_id)
         updated_channel = interaction.guild.get_channel(guild.results_channel_id)
 
-        if not updated_role or not updated_participant_role or not updated_channel:
-            raise InvalidGuildConfiguration()
+        if not updated_role:
+            raise InvalidGuildConfiguration(
+                "The host role you provided does not exist in this server. "
+                "Use `/setup server` to reconfigure the settings."
+            )
+
+        if not updated_participant_role:
+            raise InvalidGuildConfiguration(
+                "The participant role you provided does not exist in this server. "
+                "Use `/setup server` to reconfigure the settings."
+            )
+
+        if not updated_channel:
+            raise InvalidGuildConfiguration(
+                "The results channel you provided does not exist in this server. "
+                "Use `/setup server` to reconfigure the settings."
+            )
 
         embed = discord.Embed(
             title="Server Configured",
