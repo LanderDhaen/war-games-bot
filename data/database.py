@@ -124,6 +124,26 @@ class Season(BaseModel):
         query = Team.select().where(Team.season == self).order_by(Team.name)
         return await db.list(query)
 
+    async def get_team(self, team_id: int) -> Team | None:
+        return await Team.aget_or_none(
+            (Team.id == team_id)
+            & (Team.season == self)
+        )
+
+    async def has_player(self, user_id: int) -> bool:
+        query = TeamMember.select().where(
+            (TeamMember.season == self)
+            & (TeamMember.user_id == user_id)
+        )
+        return await db.exists(query)
+
+    async def add_player(self, team: Team, user_id: int) -> TeamMember:
+        return await TeamMember.acreate(
+            season=self,
+            team=team,
+            user_id=user_id,
+        )
+
     async def delete_team(self, team_id: int) -> Team | None:
         query = (
             Team.delete()
@@ -149,6 +169,24 @@ class Team(BaseModel):
             (("season", "name"), True),
         )
 
+    async def get_member_count(self) -> int:
+        query = TeamMember.select().where(TeamMember.team == self)
+        return await db.count(query)
+
+
+## Team Member
+
+class TeamMember(BaseModel):
+    id = AutoField()
+    user_id = BigIntegerField()
+    season = ForeignKeyField(Season, backref="members", on_delete="CASCADE")
+    team = ForeignKeyField(Team, backref="members", on_delete="CASCADE")
+
+    class Meta:
+        indexes = (
+            (("season", "user_id"), True),
+        )
+
 async def create_tables():
     async with db:
-        await db.acreate_tables([Guild, Season, Team], safe=True)
+        await db.acreate_tables([Guild, Season, Team, TeamMember], safe=True)
