@@ -4,7 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 from peewee import IntegrityError
 
-from core.autocomplete import active_season_autocomplete
+from core.autocomplete import active_season_autocomplete, season_team_autocomplete
 from core.checks import get_guild_config, requires_host
 from core.errors import InvalidSeasonConfiguration, InvalidTeamConfiguration
 
@@ -14,7 +14,7 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="create", description="Create a new team for season of War Games.")
+    @app_commands.command(name="create", description="Create a new team for a season of War Games.")
     @app_commands.describe(
         season_id="The season where the team will participate.",
         name="The name of the team to create.",
@@ -57,6 +57,46 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         )
 
         embed.add_field(name="Name", value=team.name, inline=False)
+
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="delete", description="Delete a team from a season of War Games.")
+    @app_commands.describe(
+        season_id="The season the team participates in.",
+        team_id="The name of the team to delete.",
+    )
+    @app_commands.rename(season_id="season", team_id="team")
+    @app_commands.autocomplete(
+        season_id=active_season_autocomplete,
+        team_id=season_team_autocomplete,
+    )
+    @requires_host()
+    async def delete_team(
+        self,
+        interaction: discord.Interaction,
+        season_id: int,
+        team_id: int,
+    ):
+        guild = await get_guild_config(interaction.guild)
+        season = await guild.get_active_season(season_id)
+
+        if season is None:
+            raise InvalidSeasonConfiguration(
+                "There's no active season with this ID."
+            )
+
+        deleted_team = await season.delete_team(team_id)
+
+        if deleted_team is None:
+            raise InvalidTeamConfiguration(
+                "There's no team with this ID in this season."
+            )
+
+        embed = discord.Embed(
+            title="Team Deleted",
+            description=f"**{deleted_team.name}** has been deleted from **{season}**.",
+            color=discord.Color.green(),
+        )
 
         await interaction.response.send_message(embed=embed)
 

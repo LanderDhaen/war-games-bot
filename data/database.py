@@ -120,6 +120,22 @@ class Season(BaseModel):
     async def create_team(self, name: str) -> Team:
         return await Team.acreate(name=name, season=self)
 
+    async def get_teams(self) -> list[Team]:
+        query = Team.select().where(Team.season == self).order_by(Team.name)
+        return await db.list(query)
+
+    async def delete_team(self, team_id: int) -> Team | None:
+        query = (
+            Team.delete()
+            .where(
+                (Team.id == team_id)
+                & (Team.season == self)
+            )
+            .returning(Team)
+        )
+        teams = await db.list(query)
+        return teams[0] if teams else None
+
 
 ## Team
 
