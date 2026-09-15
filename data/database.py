@@ -6,7 +6,14 @@ from playhouse.pwasyncio import AsyncSqliteDatabase
 
 from data.enums import SeasonStatus
 
-db = AsyncSqliteDatabase("db/war-games.db")
+db = AsyncSqliteDatabase(
+    "db/war-games.db",
+    pragmas={
+        "journal_mode": "wal",
+        "foreign_keys": 1,
+        "busy_timeout": 5_000,
+    },
+)
 
 
 class SeasonStatusField(TextField):
@@ -16,9 +23,14 @@ class SeasonStatusField(TextField):
     def python_value(self, value: str) -> SeasonStatus:
         return SeasonStatus(value)
 
+
+class BaseModel(db.Model):
+    pass
+
+
 ## Guild
 
-class Guild(db.Model):
+class Guild(BaseModel):
     guild_id = IntegerField(primary_key=True)
     host_role_id = IntegerField()
     participant_role_id = IntegerField()
@@ -62,12 +74,12 @@ async def configure_guild(
 
 ## Season
 
-class Season(db.Model):
+class Season(BaseModel):
     name = TextField()
     team_size = IntegerField()
     starts_at = DateTimeField()
     status = SeasonStatusField(default=SeasonStatus.ACTIVE)
-    guild = ForeignKeyField(Guild, backref="seasons")
+    guild = ForeignKeyField(Guild, backref="seasons", on_delete="CASCADE")
 
     def __str__(self) -> str:
         return f"{self.name} • {self.starts_at:%b %Y}"

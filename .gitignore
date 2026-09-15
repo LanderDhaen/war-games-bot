@@ -1,3 +1,4 @@
 .env
 __pycache__
 db/war-games.db
+db/war-games.db-*
