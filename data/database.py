@@ -49,7 +49,6 @@ class Guild(BaseModel):
             name=name,
             team_size=team_size,
             starts_at=starts_at,
-            status=SeasonStatus.ACTIVE,
             guild=self,
         )
 
@@ -93,11 +92,7 @@ class Guild(BaseModel):
         )
 
         seasons = await db.list(query)
-
-        if not seasons:
-            return None
-
-        return seasons[0]
+        return seasons[0] if seasons else None
 
 async def get_guild(guild_id: int) -> Guild | None:
     return await Guild.aget_or_none(Guild.guild_id == guild_id)
@@ -147,7 +142,6 @@ class Season(BaseModel):
             season=self,
             team_a=team_a,
             team_b=team_b,
-            status=MatchStatus.OPEN,
             thread_id=thread_id,
         )
 
@@ -204,8 +198,7 @@ class Team(BaseModel):
         query = (
             TeamMember.delete()
             .where(
-                (TeamMember.season == self.season_id)
-                & (TeamMember.team == self)
+                (TeamMember.team == self)
                 & (TeamMember.user_id == user_id)
             )
             .returning(TeamMember)
@@ -225,6 +218,12 @@ class TeamMember(BaseModel):
         indexes = (
             (("season", "user_id"), True),
         )
+        constraints = [
+            SQL(
+                'FOREIGN KEY ("team_id", "season_id") '
+                'REFERENCES "team" ("id", "season_id") ON DELETE CASCADE'
+            ),
+        ]
 
 
 ## Match
