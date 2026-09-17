@@ -66,6 +66,22 @@ class TeamNotFound(UserFacingError):
     title = "Invalid Configuration"
     message = "There's no team with this ID in this season."
 
+class TeamsMustBeDifferent(UserFacingError):
+    title = "Invalid Configuration"
+    message = "A team cannot play against itself."
+
+class EmptyMatchTeam(UserFacingError):
+    title = "Invalid Configuration"
+    message = "Both teams need at least one player before scheduling a match."
+
+class MatchThreadCreationFailed(UserFacingError):
+    title = "Something went wrong"
+    message = "The private match thread could not be created."
+
+class TeamInMatch(UserFacingError):
+    title = "Invalid Configuration"
+    message = "This team cannot be deleted because it is referenced by a match."
+
 class BotTeamMember(UserFacingError):
     title = "Invalid Configuration"
     message = "Bots cannot be added to a team."

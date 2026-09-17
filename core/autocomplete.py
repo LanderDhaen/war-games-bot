@@ -55,3 +55,29 @@ async def season_team_autocomplete(
         for team in teams
         if current.casefold() in team.name.casefold()
     ][:25]
+
+
+async def match_team_b_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[int]]:
+    season_id = getattr(interaction.namespace, "season", None)
+
+    if not isinstance(season_id, int):
+        return []
+
+    team_a_id = getattr(interaction.namespace, "team-a", None)
+    guild = await get_guild_config(interaction.guild)
+    season = await guild.get_active_season(season_id)
+
+    if season is None:
+        return []
+
+    teams = await season.get_teams()
+
+    return [
+        app_commands.Choice(name=team.name[:100], value=team.id)
+        for team in teams
+        if team.id != team_a_id
+        and current.casefold() in team.name.casefold()
+    ][:25]

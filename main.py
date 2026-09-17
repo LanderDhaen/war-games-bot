@@ -26,6 +26,7 @@ class WarGamesBot(commands.Bot):
         await self.load_extension("commands.setup") 
         await self.load_extension("commands.season")
         await self.load_extension("commands.team")
+        await self.load_extension("commands.match")
 
 bot = WarGamesBot()
 logger = logging.getLogger(__name__)

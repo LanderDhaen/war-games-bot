@@ -20,6 +20,7 @@ from core.errors import (
     PlayerNotInTeam,
     SeasonNotFound,
     TeamFull,
+    TeamInMatch,
     TeamNotFound,
 )
 
@@ -162,14 +163,19 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         if season is None:
             raise SeasonNotFound()
 
-        deleted_team = await season.delete_team(team_id)
+        team = await season.get_team(team_id)
 
-        if deleted_team is None:
+        if team is None:
             raise TeamNotFound()
+
+        try:
+            await team.adelete_instance()
+        except IntegrityError:
+            raise TeamInMatch() from None
 
         embed = discord.Embed(
             title="Team Deleted",
-            description=f"**{deleted_team.name}** has been deleted from **{season}**.",
+            description=f"**{team.name}** has been deleted from **{season}**.",
             color=discord.Color.green(),
         )
 

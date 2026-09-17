@@ -4,7 +4,7 @@ from datetime import datetime
 from peewee import *
 from playhouse.pwasyncio import AsyncSqliteDatabase
 
-from data.enums import SeasonStatus
+from data.enums import MatchStatus, SeasonStatus
 
 db = AsyncSqliteDatabase(
     "db/war-games.db",
@@ -22,6 +22,14 @@ class SeasonStatusField(TextField):
 
     def python_value(self, value: str) -> SeasonStatus:
         return SeasonStatus(value)
+
+
+class MatchStatusField(TextField):
+    def db_value(self, value: MatchStatus | str) -> str:
+        return MatchStatus(value).value
+
+    def python_value(self, value: str) -> MatchStatus:
+        return MatchStatus(value)
 
 
 class BaseModel(db.Model):
@@ -134,6 +142,15 @@ class Season(BaseModel):
     async def create_team(self, name: str) -> Team:
         return await Team.acreate(name=name, season=self)
 
+    async def schedule_match(self, team_a: Team, team_b: Team, thread_id: int) -> Match:
+        return await Match.acreate(
+            season=self,
+            team_a=team_a,
+            team_b=team_b,
+            status=MatchStatus.OPEN,
+            thread_id=thread_id,
+        )
+
     async def get_teams(self) -> list[Team]:
         query = Team.select().where(Team.season == self).order_by(Team.name)
         return await db.list(query)
@@ -150,19 +167,6 @@ class Season(BaseModel):
             & (TeamMember.user_id == user_id)
         )
         return await db.exists(query)
-
-    async def delete_team(self, team_id: int) -> Team | None:
-        query = (
-            Team.delete()
-            .where(
-                (Team.id == team_id)
-                & (Team.season == self)
-            )
-            .returning(Team)
-        )
-        teams = await db.list(query)
-        return teams[0] if teams else None
-
 
 ## Team
 
@@ -221,6 +225,17 @@ class TeamMember(BaseModel):
             (("season", "user_id"), True),
         )
 
+
+## Match
+
+class Match(BaseModel):
+    id = AutoField()
+    season = ForeignKeyField(Season, backref="matches", on_delete="CASCADE")
+    team_a = ForeignKeyField(Team, backref="matches_as_team_a", on_delete="RESTRICT")
+    team_b = ForeignKeyField(Team, backref="matches_as_team_b", on_delete="RESTRICT")
+    thread_id = BigIntegerField(null=True)
+    status = MatchStatusField(default=MatchStatus.OPEN)
+
 async def create_tables():
     async with db:
-        await db.acreate_tables([Guild, Season, Team, TeamMember], safe=True)
+        await db.acreate_tables([Guild, Season, Team, TeamMember, Match], safe=True)
