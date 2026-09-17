@@ -178,6 +178,7 @@ class Team(BaseModel):
     class Meta:
         indexes = (
             (("season", "name"), True),
+            (("id", "season"), True),
         )
 
     async def get_member_count(self) -> int:
@@ -235,6 +236,18 @@ class Match(BaseModel):
     team_b = ForeignKeyField(Team, backref="matches_as_team_b", on_delete="RESTRICT")
     thread_id = BigIntegerField(null=True)
     status = MatchStatusField(default=MatchStatus.OPEN)
+
+    class Meta:
+        constraints = [
+            SQL(
+                'FOREIGN KEY ("team_a_id", "season_id") '
+                'REFERENCES "team" ("id", "season_id")'
+            ),
+            SQL(
+                'FOREIGN KEY ("team_b_id", "season_id") '
+                'REFERENCES "team" ("id", "season_id")'
+            ),
+        ]
 
 async def create_tables():
     async with db:

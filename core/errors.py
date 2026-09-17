@@ -74,6 +74,10 @@ class EmptyMatchTeam(UserFacingError):
     title = "Invalid Configuration"
     message = "Both teams need at least one player before scheduling a match."
 
+class InvalidMatchConfiguration(UserFacingError):
+    title = "Invalid Configuration"
+    message = "The match could not be scheduled because the selected season or teams are no longer valid."
+
 class MatchThreadCreationFailed(UserFacingError):
     title = "Something went wrong"
     message = "The private match thread could not be created."

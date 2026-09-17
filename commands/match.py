@@ -1,6 +1,9 @@
+from contextlib import suppress
+
 import discord
 from discord import app_commands
 from discord.ext import commands
+from peewee import IntegrityError
 
 from core.autocomplete import (
     active_season_autocomplete,
@@ -10,6 +13,7 @@ from core.autocomplete import (
 from core.checks import get_guild_config, requires_host
 from core.errors import (
     EmptyMatchTeam,
+    InvalidMatchConfiguration,
     MatchThreadCreationFailed,
     MissingResultsChannelConfiguration,
     SeasonNotFound,
@@ -92,8 +96,15 @@ class Match(commands.GroupCog, group_name="match", description="Manage matches f
 
         try:
             await season.schedule_match(team_a, team_b, thread.id)
+        except IntegrityError:
+            with suppress(discord.HTTPException):
+                await thread.delete()
+
+            raise InvalidMatchConfiguration() from None
         except Exception:
-            await thread.delete()
+            with suppress(discord.HTTPException):
+                await thread.delete()
+
             raise
 
         thread_message_content = " ".join(
