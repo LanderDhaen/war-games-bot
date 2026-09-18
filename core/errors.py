@@ -34,6 +34,10 @@ class MissingParticipantRoleConfiguration(UserFacingError):
     title = "Missing Configuration"
     message = "The configured participant role no longer exists. Use `/setup server` to reconfigure the settings."
 
+class MissingGameChannelConfiguration(UserFacingError):
+    title = "Missing Configuration"
+    message = "The configured game channel no longer exists. Use `/setup server` to reconfigure the settings."
+
 class MissingResultsChannelConfiguration(UserFacingError):
     title = "Missing Configuration"
     message = "The configured results channel no longer exists. Use `/setup server` to reconfigure the settings."
