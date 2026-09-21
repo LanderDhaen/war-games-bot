@@ -218,7 +218,10 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         try:
             await team.add_member(member.id)
         except UniqueViolationError as error:
-            if error.constraint_name in {"unique_user_season", "unique_user_team"}:
+            if error.constraint_name in {
+                "unique_team_member_season_user",
+                "unique_team_member_team_user",
+            }:
                 raise PlayerAlreadyAssigned() from None
             raise PlayerAddFailed() from None
 
