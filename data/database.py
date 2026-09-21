@@ -44,7 +44,7 @@ from core.errors import (
     SeasonNotFound,
     TeamNotFound,
 )
-from data.enums import MatchStatus, SeasonStatus
+from data.enums import MatchStatus, PhaseName, SeasonStatus
 
 
 def utc_now() -> datetime:
@@ -236,6 +236,16 @@ class Season(BaseTable):
         return match
 
 
+class Phase(BaseTable):
+    name = Text(choices=PhaseName)
+    season = ForeignKey(references=Season, on_delete=OnDelete.cascade)
+
+    unique_name_season = Unique([name, season], name="unique_phase_name_season")
+
+    def __str__(self) -> str:
+        return self.name.title()
+
+
 class Team(BaseTable):
     name = Varchar(length=TEAM_NAME_MAX_LENGTH)
     code = Varchar(length=TEAM_CODE_MAX_LENGTH)
@@ -348,5 +358,5 @@ async def get_guild(guild_id: int) -> Guild:
 
 
 async def create_tables() -> None:
-    await drop_db_tables(Guild, Season, Team, TeamMember, Match)
-    await create_db_tables(Guild, Season, Team, TeamMember, Match, if_not_exists=True)
+    await drop_db_tables(Guild, Season, Phase, Team, TeamMember, Match)
+    await create_db_tables(Guild, Season, Phase, Team, TeamMember, Match, if_not_exists=True)
