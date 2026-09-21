@@ -5,6 +5,7 @@ from piccolo.columns import OnDelete, Serial, ForeignKey, Text, Integer, Timesta
 from piccolo.columns.defaults.timestamptz import TimestamptzNow
 from piccolo.constraints import Check, Unique
 
+from core.errors import MissingGuildConfiguration
 from data.enums import SeasonStatus, MatchStatus
 
 
@@ -46,9 +47,6 @@ class Match(BaseTable):
     thread_id = Integer(null=True)
     status = Text(default=MatchStatus.OPEN, choices=MatchStatus)
 
-async def create_tables() -> None:
-    await create_db_tables(Guild, Season, Team, TeamMember, Match, if_not_exists=True)
-
 async def configure_guild(guild_id: int, host_role_id: int, participant_role_id: int, game_channel_id: int, results_channel_id: int):
 
     guild = await Guild.objects().where(Guild.guild_id == guild_id).first()
@@ -74,3 +72,14 @@ async def configure_guild(guild_id: int, host_role_id: int, participant_role_id:
 
 
     return guild, created
+
+async def get_configuration(guild_id: int) -> Guild:
+    guild = await Guild.objects().where(Guild.guild_id == guild_id).first()
+
+    if not guild:
+        raise MissingGuildConfiguration()
+
+    return guild
+
+async def create_tables() -> None:
+    await create_db_tables(Guild, Season, Team, TeamMember, Match, if_not_exists=True)
