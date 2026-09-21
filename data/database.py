@@ -30,6 +30,7 @@ from config import (
     TEAM_NAME_MAX_LENGTH,
 )
 from core.errors import (
+    DuplicatePhase,
     DuplicateSeasonCode,
     DuplicateTeamCode,
     DuplicateTeamName,
@@ -173,6 +174,18 @@ class Season(BaseTable):
     def __str__(self) -> str:
         return f"{self.name} • {self.starts_at.strftime('%B %Y')}"
 
+    async def schedule_phase(self, name: PhaseName) -> Phase:
+        phase = Phase(name=name, season=self)
+
+        try:
+            await phase.save()
+        except UniqueViolationError as error:
+            if error.constraint_name == "unique_phase_season_name":
+                raise DuplicatePhase() from None
+            raise
+
+        return phase
+
     async def create_team(self, name: str, code: str) -> Team:
         team = Team(
             name=name,
@@ -243,7 +256,7 @@ class Phase(BaseTable):
     unique_phase_season_name = Unique([season, name], name="unique_phase_season_name")
 
     def __str__(self) -> str:
-        return self.name.title()
+        return self.name
 
 
 class Team(BaseTable):

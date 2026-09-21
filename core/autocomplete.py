@@ -3,7 +3,20 @@ from discord import app_commands
 
 from core.checks import get_interaction_guild
 from data.database import get_guild
-from data.enums import SeasonStatus
+from data.enums import PhaseName, SeasonStatus
+
+
+async def phase_name_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[str]]:
+    del interaction
+
+    return [
+        app_commands.Choice(name=str(phase_name), value=phase_name)
+        for phase_name in PhaseName
+        if current.casefold() in phase_name.casefold()
+    ][:25]
 
 
 async def active_season_autocomplete(

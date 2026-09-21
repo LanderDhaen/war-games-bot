@@ -126,6 +126,16 @@ class SeasonNotActive(UserFacingError):
     message = "This season is not active."
 
 
+class InvalidPhaseName(UserFacingError):
+    title = "Invalid Configuration"
+    message = "This is not a valid phase name."
+
+
+class DuplicatePhase(UserFacingError):
+    title = "Invalid Configuration"
+    message = "This phase has already been scheduled for the selected season."
+
+
 class InvalidTeamName(UserFacingError):
     title = "Invalid Configuration"
     message = (
