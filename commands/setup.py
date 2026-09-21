@@ -22,8 +22,10 @@ class Setup(commands.GroupCog, group_name="setup", description="Configure your s
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.guild_only()
     async def setup_server(self, interaction: discord.Interaction, host_role: discord.Role, participant_role: discord.Role, game_channel: discord.TextChannel, results_channel: discord.TextChannel):
-    
-        if interaction.guild is None:
+
+        server = interaction.guild
+        
+        if server is None:
             raise app_commands.NoPrivateMessage()
 
         guild, created = await configure_guild(
@@ -34,22 +36,35 @@ class Setup(commands.GroupCog, group_name="setup", description="Configure your s
             results_channel.id,
         )
 
-        updated_role = interaction.guild.get_role(guild.host_role_id)
-        updated_participant_role = interaction.guild.get_role(guild.participant_role_id)
-        updated_game_channel = interaction.guild.get_channel(guild.game_channel_id)
-        updated_channel = interaction.guild.get_channel(guild.results_channel_id)
+        updated_role = server.get_role(guild.host_role_id)
+        updated_participant_role = server.get_role(guild.participant_role_id)
+        updated_game_channel = server.get_channel(guild.game_channel_id)
+        updated_channel = server.get_channel(guild.results_channel_id)
     
         if not updated_role:
-            raise MissingHostRoleConfiguration()
+
+            try:
+                await server.fetch_role(guild.host_role_id)
+            except discord.NotFound:
+                raise MissingHostRoleConfiguration()
 
         if not updated_participant_role:
-            raise MissingParticipantRoleConfiguration()
+            try:
+                await server.fetch_role(guild.participant_role_id)
+            except discord.NotFound:
+                raise MissingParticipantRoleConfiguration()
 
         if not updated_game_channel:
-            raise MissingGameChannelConfiguration()
+            try:
+                await server.fetch_channel(guild.game_channel_id)
+            except discord.NotFound:
+                raise MissingGameChannelConfiguration()
 
         if not updated_channel:
-            raise MissingResultsChannelConfiguration()
+            try:
+                await server.fetch_channel(guild.results_channel_id)
+            except discord.NotFound:
+                raise MissingResultsChannelConfiguration()
 
         embed = discord.Embed(
             title="Server Configured",
