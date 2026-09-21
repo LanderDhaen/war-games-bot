@@ -8,13 +8,18 @@ from core.errors import (
 from data.database import get_guild
 
 
+def get_interaction_guild(interaction: discord.Interaction) -> discord.Guild:
+    guild = interaction.guild
+
+    if guild is None:
+        raise app_commands.NoPrivateMessage()
+
+    return guild
+
+
 def requires_config():
     async def predicate(interaction: discord.Interaction) -> bool:
-
-        discord_guild = interaction.guild
-
-        if discord_guild is None:
-            raise app_commands.NoPrivateMessage()
+        discord_guild = get_interaction_guild(interaction)
 
         await get_guild(discord_guild)
         
@@ -25,10 +30,7 @@ def requires_config():
 
 def requires_host():
     async def predicate(interaction: discord.Interaction) -> bool:
-        server = interaction.guild
-
-        if server is None:
-            raise app_commands.NoPrivateMessage()
+        server = get_interaction_guild(interaction)
 
         guild = await get_guild(server.id)
         host_role = server.get_role(guild.host_role_id)

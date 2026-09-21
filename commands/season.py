@@ -4,7 +4,7 @@ from discord.ext import commands
 from discord import app_commands
 
 from core.autocomplete import active_season_autocomplete, season_autocomplete
-from core.checks import requires_host
+from core.checks import get_interaction_guild, requires_host
 from core.errors import (
     InvalidSeasonName,
     InvalidSeasonStart,
@@ -35,10 +35,7 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
         raw_starts_at: str,
     ):
 
-        server = interaction.guild
-
-        if not server:
-            raise app_commands.NoPrivateMessage()
+        server = get_interaction_guild(interaction)
 
         guild = await get_guild(server.id)
 
@@ -80,10 +77,7 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
         season_id: int,
     ):  
 
-        server = interaction.guild
-
-        if server is None:
-            raise app_commands.NoPrivateMessage()
+        server = get_interaction_guild(interaction)
         
         guild = await get_guild(server.id)
         season = await guild.get_season_by_id(season_id)
@@ -125,10 +119,7 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
         interaction: discord.Interaction,
         season_id: int,
     ):
-        server = interaction.guild
-
-        if server is None:
-            raise app_commands.NoPrivateMessage()
+        server = get_interaction_guild(interaction)
 
         guild = await get_guild(server.id)
         season = await guild.finish_season(season_id)

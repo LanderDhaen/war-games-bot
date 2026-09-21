@@ -8,7 +8,7 @@ from core.autocomplete import (
     active_season_autocomplete,
     season_team_autocomplete,
 )
-from core.checks import requires_host
+from core.checks import get_interaction_guild, requires_host
 from core.errors import (
     BotTeamMember,
     DuplicateTeamName,
@@ -46,10 +46,7 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         name: app_commands.Range[str, 1, 100],
     ):
 
-        server = interaction.guild
-
-        if server is None:
-            raise app_commands.NoPrivateMessage()
+        server = get_interaction_guild(interaction)
         
         guild = await get_guild(server.id)
         season = await guild.get_active_season_by_id(season_id)
@@ -88,10 +85,7 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         team_id: int,
     ):
 
-        server = interaction.guild
-
-        if server is None:
-            raise app_commands.NoPrivateMessage()
+        server = get_interaction_guild(interaction)
         
         guild = await get_guild(server.id)
         season = await guild.get_active_season_by_id(season_id)
@@ -145,10 +139,7 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         team_id: int,
     ):
 
-        server = interaction.guild
-
-        if server is None:
-            raise app_commands.NoPrivateMessage()
+        server = get_interaction_guild(interaction)
         
         guild = await get_guild(server.id)
         season = await guild.get_active_season_by_id(season_id)
@@ -184,10 +175,7 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         team_id: int,
         member: discord.Member,
     ):
-        server = interaction.guild
-
-        if server is None:
-            raise app_commands.NoPrivateMessage()
+        server = get_interaction_guild(interaction)
 
         if member.bot:
             raise BotTeamMember()
@@ -247,10 +235,7 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         team_id: int,
         member: discord.Member,
     ):
-        server = interaction.guild
-
-        if server is None:
-            raise app_commands.NoPrivateMessage()
+        server = get_interaction_guild(interaction)
 
         guild = await get_guild(server.id)
         season = await guild.get_active_season_by_id(season_id)

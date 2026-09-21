@@ -10,7 +10,7 @@ from core.autocomplete import (
     match_team_b_autocomplete,
     season_team_autocomplete,
 )
-from core.checks import get_guild, requires_host
+from core.checks import get_guild, get_interaction_guild, requires_host
 from core.errors import (
     EmptyMatchTeam,
     InvalidMatchConfiguration,
@@ -51,10 +51,7 @@ class Match(commands.GroupCog, group_name="match", description="Manage matches f
         team_a_id: int,
         team_b_id: int,
     ):
-        server = interaction.guild
-
-        if server is None:
-            raise app_commands.NoPrivateMessage()
+        server = get_interaction_guild(interaction)
 
         await interaction.response.defer()
 

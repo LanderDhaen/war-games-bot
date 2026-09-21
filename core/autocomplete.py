@@ -1,6 +1,7 @@
 import discord
 
 from discord import app_commands
+from core.checks import get_interaction_guild
 from data.database import get_guild
 from data.enums import SeasonStatus
 
@@ -9,10 +10,7 @@ async def active_season_autocomplete(
     current: str,
 ) -> list[app_commands.Choice[int]]:
 
-    server = interaction.guild
-
-    if server is None:
-        raise app_commands.NoPrivateMessage()
+    server = get_interaction_guild(interaction)
     
     guild = await get_guild(server.id)
     seasons = await guild.get_active_seasons()
@@ -29,10 +27,7 @@ async def season_autocomplete(
     current: str,
 ) -> list[app_commands.Choice[int]]:
 
-    server = interaction.guild
-
-    if server is None:
-        raise app_commands.NoPrivateMessage()
+    server = get_interaction_guild(interaction)
     
     guild = await get_guild(server.id)
     seasons = await guild.get_seasons()
@@ -49,10 +44,7 @@ async def season_team_autocomplete(
     current: str,
 ) -> list[app_commands.Choice[int]]:
 
-    server = interaction.guild
-
-    if server is None:
-        raise app_commands.NoPrivateMessage()
+    server = get_interaction_guild(interaction)
     
     season_id = getattr(interaction.namespace, "season", None)
 
@@ -79,10 +71,7 @@ async def match_team_b_autocomplete(
     current: str,
 ) -> list[app_commands.Choice[int]]:
 
-    server = interaction.guild
-
-    if server is None:
-        raise app_commands.NoPrivateMessage()
+    server = get_interaction_guild(interaction)
 
     season_id = getattr(interaction.namespace, "season", None)
 

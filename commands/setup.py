@@ -2,6 +2,7 @@ import discord
 
 from discord.ext import commands
 from discord import app_commands
+from core.checks import get_interaction_guild
 from core.errors import (
     MissingGameChannelConfiguration,
     MissingHostRoleConfiguration,
@@ -23,13 +24,10 @@ class Setup(commands.GroupCog, group_name="setup", description="Configure your s
     @app_commands.guild_only()
     async def setup_server(self, interaction: discord.Interaction, host_role: discord.Role, participant_role: discord.Role, game_channel: discord.TextChannel, results_channel: discord.TextChannel):
 
-        server = interaction.guild
-        
-        if server is None:
-            raise app_commands.NoPrivateMessage()
+        server = get_interaction_guild(interaction)
 
         guild, created = await configure_guild(
-            interaction.guild.id,
+            server.id,
             host_role.id,
             participant_role.id,
             game_channel.id,
@@ -68,7 +66,7 @@ class Setup(commands.GroupCog, group_name="setup", description="Configure your s
 
         embed = discord.Embed(
             title="Server Configured",
-            description=(f"The following settings have been {('added' if created else 'updated')} in **{interaction.guild.name}**:\n\n"),
+            description=(f"The following settings have been {('added' if created else 'updated')} in **{server.name}**:\n\n"),
             color=discord.Color.green()
         )
 
