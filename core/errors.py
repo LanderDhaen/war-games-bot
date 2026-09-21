@@ -58,6 +58,10 @@ class SeasonNotFound(UserFacingError):
     title = "Invalid Configuration"
     message = "There's no season with this ID."
 
+class SeasonNotActive(UserFacingError):
+    title = "Invalid Configuration"
+    message = "This season is not active."
+
 class InvalidTeamName(UserFacingError):
     title = "Invalid Configuration"
     message = "The team name must contain between 1 and 100 characters."

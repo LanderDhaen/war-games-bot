@@ -8,7 +8,7 @@ from core.autocomplete import (
     active_season_autocomplete,
     season_team_autocomplete,
 )
-from core.checks import get_guild_config, requires_host
+from core.checks import requires_host
 from core.errors import (
     BotTeamMember,
     DuplicateTeamName,
@@ -23,6 +23,8 @@ from core.errors import (
     TeamInMatch,
     TeamNotFound,
 )
+
+from data.database import get_guild
 
 @app_commands.guild_only()
 class Team(commands.GroupCog, group_name="team", description="Manage teams for War Games."):
@@ -44,26 +46,20 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         name: app_commands.Range[str, 1, 100],
     ):
 
-        discord_guild = interaction.guild
+        server = interaction.guild
 
-        if discord_guild is None:
+        if server is None:
             raise app_commands.NoPrivateMessage()
         
-        guild = await get_guild_config(discord_guild)
-        season = await guild.get_active_season(season_id)
-
-        if season is None:
-            raise SeasonNotFound()
+        guild = await get_guild(server.id)
+        season = await guild.get_active_season_by_id(season_id)
 
         name = name.strip()
 
         if not 1 <= len(name) <= 100:
             raise InvalidTeamName()
 
-        try:
-            team = await season.create_team(name)
-        except IntegrityError:
-            raise DuplicateTeamName() from None
+        team = await season.create_team(name)
 
         embed = discord.Embed(
             title="Team Created",
@@ -92,18 +88,15 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         team_id: int,
     ):
 
-        discord_guild = interaction.guild
+        server = interaction.guild
 
-        if discord_guild is None:
+        if server is None:
             raise app_commands.NoPrivateMessage()
         
-        guild = await get_guild_config(discord_guild)
-        season = await guild.get_active_season(season_id)
+        guild = await get_guild(server.id)
+        season = await guild.get_active_season_by_id(season_id)
 
-        if season is None:
-            raise SeasonNotFound()
-
-        team = await season.get_team(team_id)
+        team = await season.get_team_by_id(team_id)
 
         if team is None:
             raise TeamNotFound()
@@ -152,26 +145,17 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         team_id: int,
     ):
 
-        discord_guild = interaction.guild
+        server = interaction.guild
 
-        if discord_guild is None:
+        if server is None:
             raise app_commands.NoPrivateMessage()
         
-        guild = await get_guild_config(discord_guild)
-        season = await guild.get_active_season(season_id)
+        guild = await get_guild(server.id)
+        season = await guild.get_active_season_by_id(season_id)
 
-        if season is None:
-            raise SeasonNotFound()
+        team = await season.get_team_by_id(team_id)
 
-        team = await season.get_team(team_id)
-
-        if team is None:
-            raise TeamNotFound()
-
-        try:
-            await team.adelete_instance()
-        except IntegrityError:
-            raise TeamInMatch() from None
+        team.remove()
 
         embed = discord.Embed(
             title="Team Deleted",
@@ -200,41 +184,40 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         team_id: int,
         member: discord.Member,
     ):
-        discord_guild = interaction.guild
+        server = interaction.guild
 
-        if discord_guild is None:
+        if server is None:
             raise app_commands.NoPrivateMessage()
-
-        guild = await get_guild_config(discord_guild)
-        season = await guild.get_active_season(season_id)
-
-        if season is None:
-            raise SeasonNotFound()
-
-        team = await season.get_team(team_id)
-
-        if team is None:
-            raise TeamNotFound()
 
         if member.bot:
             raise BotTeamMember()
 
-        participant_role = discord_guild.get_role(guild.participant_role_id)
+        guild = await get_guild(server.id)
+
+        participant_role = server.get_role(guild.participant_role_id)
 
         if participant_role is None:
-            raise MissingParticipantRoleConfiguration()
+            try:
+                participant_role = await server.fetch_role(guild.participant_role_id)
+            except discord.NotFound:
+                raise MissingParticipantRoleConfiguration()
 
         if participant_role not in member.roles:
             raise MemberMissingParticipantRole()
 
+
+        season = await guild.get_active_season_by_id(season_id)
+
         if await season.has_player(member.id):
             raise PlayerAlreadyAssigned()
+        
+        team = await season.get_team_by_id(team_id)
 
-        if await team.get_member_count() >= season.team_size:
+        if await team.get_members_count() >= season.team_size:
             raise TeamFull()
 
         try:
-            await team.add_player(member.id)
+            await team.add_member(member.id)
         except IntegrityError:
             raise PlayerAddFailed() from None
 
@@ -265,25 +248,16 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         team_id: int,
         member: discord.Member,
     ):
-        discord_guild = interaction.guild
-        if discord_guild is None:
+        server = interaction.guild
+
+        if server is None:
             raise app_commands.NoPrivateMessage()
 
-        guild = await get_guild_config(discord_guild)
-        season = await guild.get_active_season(season_id)
+        guild = await get_guild(server.id)
+        season = await guild.get_active_season_by_id(season_id)
+        team = await season.get_team_by_id(team_id)
 
-        if season is None:
-            raise SeasonNotFound()
-
-        team = await season.get_team(team_id)
-
-        if team is None:
-            raise TeamNotFound()
-
-        removed_member = await team.remove_player(member.id)
-
-        if removed_member is None:
-            raise PlayerNotInTeam()
+        await team.remove_member(member.id)
 
         embed = discord.Embed(
             title="Player Removed",

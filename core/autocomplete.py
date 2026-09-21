@@ -2,6 +2,7 @@ import discord
 
 from discord import app_commands
 from data.database import get_guild
+from data.enums import SeasonStatus
 
 async def active_season_autocomplete(
     interaction: discord.Interaction,
@@ -47,23 +48,29 @@ async def season_team_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[app_commands.Choice[int]]:
+
+    server = interaction.guild
+
+    if server is None:
+        raise app_commands.NoPrivateMessage()
+    
     season_id = getattr(interaction.namespace, "season", None)
 
     if not isinstance(season_id, int):
         return []
 
-    guild = await get_guild(interaction.guild)
-    season = await guild.get_active_season(season_id)
+    guild = await get_guild(server.id)
+    season = await guild.get_season_by_id(season_id)
 
-    if season is None:
+    if not season or season.status == SeasonStatus.FINISHED:
         return []
 
     teams = await season.get_teams()
 
     return [
-        app_commands.Choice(name=team.name[:100], value=team.id)
+        app_commands.Choice(name=str(team)[:100], value=team.id)
         for team in teams
-        if current.casefold() in team.name.casefold()
+        if current.casefold() in str(team).casefold()
     ][:25]
 
 
