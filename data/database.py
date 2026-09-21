@@ -108,6 +108,18 @@ class Season(BaseTable):
     async def has_player(self, user_id: int) -> bool:
         return await TeamMember.exists().where((TeamMember.season == self) & (TeamMember.user_id == user_id))
 
+    async def schedule_match(self, team_a: Team, team_b: Team, thread_id: int) -> Match:
+        match = Match(
+            season=self,
+            team_a=team_a,
+            team_b=team_b,
+            thread_id=thread_id,
+        )
+
+        await match.save()
+
+        return match
+
 class Team(BaseTable):
     name = Varchar(length=100)
     season = ForeignKey(references=Season)

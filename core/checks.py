@@ -34,7 +34,10 @@ def requires_host():
         host_role = server.get_role(guild.host_role_id)
 
         if host_role is None:
-            raise MissingHostRoleConfiguration()
+            try:
+                host_role = await server.fetch_role(guild.host_role_id)
+            except discord.NotFound:
+                raise MissingHostRoleConfiguration()
 
         if host_role not in interaction.user.roles:
             raise MissingHostRole()

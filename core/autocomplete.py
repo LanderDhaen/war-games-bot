@@ -78,23 +78,29 @@ async def match_team_b_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[app_commands.Choice[int]]:
+
+    server = interaction.guild
+
+    if server is None:
+        raise app_commands.NoPrivateMessage()
+
     season_id = getattr(interaction.namespace, "season", None)
 
     if not isinstance(season_id, int):
         return []
 
     team_a_id = getattr(interaction.namespace, "team-a", None)
-    guild = await get_guild(interaction.guild)
-    season = await guild.get_active_season(season_id)
+    guild = await get_guild(server.id)
+    season = await guild.get_season_by_id(season_id)
 
-    if season is None:
+    if season is None or season.status == SeasonStatus.FINISHED:
         return []
 
     teams = await season.get_teams()
 
     return [
-        app_commands.Choice(name=team.name[:100], value=team.id)
+        app_commands.Choice(name=str(team)[:100], value=team.id)
         for team in teams
         if team.id != team_a_id
-        and current.casefold() in team.name.casefold()
+        and current.casefold() in str(team).casefold()
     ][:25]

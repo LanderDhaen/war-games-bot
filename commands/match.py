@@ -10,7 +10,7 @@ from core.autocomplete import (
     match_team_b_autocomplete,
     season_team_autocomplete,
 )
-from core.checks import get_guild_config, requires_host
+from core.checks import get_guild, requires_host
 from core.errors import (
     EmptyMatchTeam,
     InvalidMatchConfiguration,
@@ -51,40 +51,42 @@ class Match(commands.GroupCog, group_name="match", description="Manage matches f
         team_a_id: int,
         team_b_id: int,
     ):
-        discord_guild = interaction.guild
+        server = interaction.guild
 
-        if discord_guild is None:
+        if server is None:
             raise app_commands.NoPrivateMessage()
 
         await interaction.response.defer()
 
-        guild = await get_guild_config(discord_guild)
+        guild = await get_guild(server.id)
 
-        channel = discord_guild.get_channel(guild.results_channel_id)
+        channel = server.get_channel(guild.results_channel_id)
+
+        if channel is None:
+            try:
+                channel = await server.fetch_channel(guild.results_channel_id)
+            except discord.NotFound:
+                raise MissingResultsChannelConfiguration()
 
         if not isinstance(channel, discord.TextChannel):
             raise MissingResultsChannelConfiguration()
 
-        season = await guild.get_active_season(season_id)
-
-        if season is None:
-            raise SeasonNotFound()
-
-        team_a = await season.get_team(team_a_id)
+        season = await guild.get_active_season_by_id(season_id)
+        team_a = await season.get_team_by_id(team_a_id)
 
         if not team_a:
             raise TeamNotFound()
 
-        team_b = await season.get_team(team_b_id)
+        team_b = await season.get_team_by_id(team_b_id)
 
         if not team_b:
             raise TeamNotFound()
 
-        team_a_memberships = await team_a.get_members()
-        team_b_memberships = await team_b.get_members()
-
         if team_a.id == team_b.id:
             raise TeamsMustBeDifferent()
+
+        team_a_memberships = await team_a.get_members()
+        team_b_memberships = await team_b.get_members()
 
         if not team_a_memberships or not team_b_memberships:
             raise EmptyMatchTeam()

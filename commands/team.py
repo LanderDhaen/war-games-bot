@@ -205,7 +205,6 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         if participant_role not in member.roles:
             raise MemberMissingParticipantRole()
 
-
         season = await guild.get_active_season_by_id(season_id)
 
         if await season.has_player(member.id):
