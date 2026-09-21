@@ -1,6 +1,6 @@
 import discord
-
 from discord import app_commands
+
 from core.checks import get_interaction_guild
 from data.database import get_guild
 from data.enums import SeasonStatus
@@ -65,8 +65,7 @@ async def season_team_autocomplete(
     return [
         app_commands.Choice(name=str(team)[:100], value=team.code)
         for team in teams
-        if current.casefold() in str(team).casefold()
-        or current.casefold() in team.code.casefold()
+        if current.casefold() in str(team).casefold() or current.casefold() in team.code.casefold()
     ][:25]
 
 
@@ -96,7 +95,6 @@ async def match_team_b_autocomplete(
         for team in teams
         if team.code != team_a_code
         and (
-            current.casefold() in str(team).casefold()
-            or current.casefold() in team.code.casefold()
+            current.casefold() in str(team).casefold() or current.casefold() in team.code.casefold()
         )
     ][:25]

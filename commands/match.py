@@ -16,22 +16,17 @@ from core.errors import (
     InvalidMatchConfiguration,
     MatchThreadCreationFailed,
     MissingResultsChannelConfiguration,
-    SeasonNotFound,
     TeamNotFound,
     TeamsMustBeDifferent,
 )
 
 
 @app_commands.guild_only()
-class Match(
-    commands.GroupCog, group_name="match", description="Manage matches for War Games."
-):
+class Match(commands.GroupCog, group_name="match", description="Manage matches for War Games."):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(
-        name="schedule", description="Schedule a match between two teams."
-    )
+    @app_commands.command(name="schedule", description="Schedule a match between two teams.")
     @app_commands.describe(
         season_code="The season where the match will be played.",
         team_a_code="The first team.",
@@ -67,7 +62,7 @@ class Match(
             try:
                 channel = await server.fetch_channel(guild.results_channel_id)
             except discord.NotFound:
-                raise MissingResultsChannelConfiguration()
+                raise MissingResultsChannelConfiguration() from None
 
         if not isinstance(channel, discord.TextChannel):
             raise MissingResultsChannelConfiguration()
@@ -99,7 +94,7 @@ class Match(
                 type=discord.ChannelType.private_thread,
             )
         except discord.HTTPException:
-            raise MatchThreadCreationFailed()
+            raise MatchThreadCreationFailed() from None
 
         try:
             await season.schedule_match(team_a, team_b, thread.id)
@@ -115,8 +110,7 @@ class Match(
             raise
 
         thread_message_content = " ".join(
-            f"<@{membership.user_id}>"
-            for membership in team_a_memberships + team_b_memberships
+            f"<@{membership.user_id}>" for membership in team_a_memberships + team_b_memberships
         )
 
         thread_embed = discord.Embed(
@@ -128,9 +122,7 @@ class Match(
         thread_embed.add_field(name="Team A", value=team_a.name, inline=True)
         thread_embed.add_field(
             name="Players",
-            value="\n".join(
-                f"• <@{membership.user_id}>" for membership in team_a_memberships
-            ),
+            value="\n".join(f"• <@{membership.user_id}>" for membership in team_a_memberships),
             inline=True,
         )
         thread_embed.add_field(
@@ -140,9 +132,7 @@ class Match(
         thread_embed.add_field(name="Team B", value=team_b.name, inline=True)
         thread_embed.add_field(
             name="Players",
-            value="\n".join(
-                f"• <@{membership.user_id}>" for membership in team_b_memberships
-            ),
+            value="\n".join(f"• <@{membership.user_id}>" for membership in team_b_memberships),
             inline=True,
         )
         thread_embed.add_field(

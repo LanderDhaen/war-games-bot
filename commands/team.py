@@ -1,5 +1,4 @@
 import discord
-
 from asyncpg.exceptions import UniqueViolationError
 from discord import app_commands
 from discord.ext import commands
@@ -10,7 +9,6 @@ from config import (
     TEAM_NAME_MAX_LENGTH,
     TEAM_NAME_MIN_LENGTH,
 )
-
 from core.autocomplete import (
     active_season_autocomplete,
     season_team_autocomplete,
@@ -18,33 +16,24 @@ from core.autocomplete import (
 from core.checks import get_interaction_guild, requires_host
 from core.errors import (
     BotTeamMember,
-    DuplicateTeamName,
     InvalidTeamCode,
     InvalidTeamName,
     MemberMissingParticipantRole,
     MissingParticipantRoleConfiguration,
     PlayerAddFailed,
     PlayerAlreadyAssigned,
-    PlayerNotInTeam,
-    SeasonNotFound,
     TeamFull,
-    TeamInMatch,
     TeamNotFound,
 )
-
 from data.database import get_guild
 
 
 @app_commands.guild_only()
-class Team(
-    commands.GroupCog, group_name="team", description="Manage teams for War Games."
-):
+class Team(commands.GroupCog, group_name="team", description="Manage teams for War Games."):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(
-        name="create", description="Create a new team for a season of War Games."
-    )
+    @app_commands.command(name="create", description="Create a new team for a season of War Games.")
     @app_commands.describe(
         season_code="The season where the team will participate.",
         name="The name of the team to create.",
@@ -144,9 +133,7 @@ class Team(
 
         await interaction.response.send_message(embed=info_embed)
 
-    @app_commands.command(
-        name="delete", description="Delete a team from a season of War Games."
-    )
+    @app_commands.command(name="delete", description="Delete a team from a season of War Games.")
     @app_commands.describe(
         season_code="The season the team participates in.",
         team_code="The team to delete.",
@@ -213,7 +200,7 @@ class Team(
             try:
                 participant_role = await server.fetch_role(guild.participant_role_id)
             except discord.NotFound:
-                raise MissingParticipantRoleConfiguration()
+                raise MissingParticipantRoleConfiguration() from None
 
         if participant_role not in member.roles:
             raise MemberMissingParticipantRole()
@@ -243,9 +230,7 @@ class Team(
 
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(
-        name="remove-player", description="Remove a player from a team."
-    )
+    @app_commands.command(name="remove-player", description="Remove a player from a team.")
     @app_commands.describe(
         season_code="The season the team participates in.",
         team_code="The team to remove the player from.",

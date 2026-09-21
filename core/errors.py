@@ -7,10 +7,10 @@ from config import (
     SEASON_NAME_MIN_LENGTH,
     SEASON_TEAM_SIZE_MAX,
     SEASON_TEAM_SIZE_MIN,
-    TEAM_NAME_MAX_LENGTH,
-    TEAM_NAME_MIN_LENGTH,
     TEAM_CODE_MAX_LENGTH,
     TEAM_CODE_MIN_LENGTH,
+    TEAM_NAME_MAX_LENGTH,
+    TEAM_NAME_MIN_LENGTH,
 )
 
 
@@ -82,7 +82,9 @@ class DuplicateSeasonCode(UserFacingError):
 
 class InvalidSeasonTeamSize(UserFacingError):
     title = "Invalid Configuration"
-    message = f"The team size must be between {SEASON_TEAM_SIZE_MIN} and {SEASON_TEAM_SIZE_MAX} players."
+    message = (
+        f"The team size must be between {SEASON_TEAM_SIZE_MIN} and {SEASON_TEAM_SIZE_MAX} players."
+    )
 
 
 class InvalidSeasonStart(UserFacingError):
@@ -137,7 +139,9 @@ class EmptyMatchTeam(UserFacingError):
 
 class InvalidMatchConfiguration(UserFacingError):
     title = "Invalid Configuration"
-    message = "The match could not be scheduled because the selected season or teams are no longer valid."
+    message = (
+        "The match could not be scheduled because the selected season or teams are no longer valid."
+    )
 
 
 class MatchThreadCreationFailed(UserFacingError):

@@ -1,25 +1,26 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from asyncpg.exceptions import (
     CheckViolationError,
     StringDataRightTruncationError,
     UniqueViolationError,
 )
-from piccolo.table import Table, create_db_tables, drop_db_tables
 from piccolo.columns import (
     BigInt,
+    ForeignKey,
+    Integer,
     OnDelete,
     Serial,
-    ForeignKey,
     Text,
-    Integer,
     Timestamptz,
     Varchar,
 )
 from piccolo.columns.defaults.timestamptz import TimestamptzNow
 from piccolo.constraints import Check, Unique
+from piccolo.table import Table, create_db_tables, drop_db_tables
+
 from config import (
     SEASON_CODE_MAX_LENGTH,
     SEASON_NAME_MAX_LENGTH,
@@ -43,11 +44,11 @@ from core.errors import (
     SeasonNotFound,
     TeamNotFound,
 )
-from data.enums import SeasonStatus, MatchStatus
+from data.enums import MatchStatus, SeasonStatus
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class BaseTable(Table):
@@ -170,7 +171,7 @@ class Season(BaseTable):
     )
 
     def __str__(self) -> str:
-        return f"{self.name} • {self.starts_at.strftime("%B %Y")}"
+        return f"{self.name} • {self.starts_at.strftime('%B %Y')}"
 
     async def create_team(self, name: str, code: str) -> Team:
         team = Team(
@@ -210,11 +211,7 @@ class Season(BaseTable):
         return await Team.objects().where(Team.season == self).order_by(Team.name)
 
     async def get_team_by_code(self, team_code: str) -> Team:
-        team = (
-            await Team.objects()
-            .where((Team.season == self) & (Team.code == team_code))
-            .first()
-        )
+        team = await Team.objects().where((Team.season == self) & (Team.code == team_code)).first()
 
         if team is None:
             raise TeamNotFound()
@@ -260,9 +257,7 @@ class Team(BaseTable):
 
     async def get_members(self) -> list[TeamMember]:
         return (
-            await TeamMember.objects()
-            .where(TeamMember.team == self)
-            .order_by(TeamMember.user_id)
+            await TeamMember.objects().where(TeamMember.team == self).order_by(TeamMember.user_id)
         )
 
     async def add_member(self, user_id: int) -> TeamMember:

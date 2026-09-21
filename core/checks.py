@@ -22,7 +22,7 @@ def requires_config():
         discord_guild = get_interaction_guild(interaction)
 
         await get_guild(discord_guild)
-        
+
         return True
 
     return app_commands.check(predicate)
@@ -39,7 +39,7 @@ def requires_host():
             try:
                 host_role = await server.fetch_role(guild.host_role_id)
             except discord.NotFound:
-                raise MissingHostRoleConfiguration()
+                raise MissingHostRoleConfiguration() from None
 
         if host_role not in interaction.user.roles:
             raise MissingHostRole()
