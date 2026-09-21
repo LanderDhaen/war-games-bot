@@ -34,32 +34,37 @@ from core.errors import (
 
 from data.database import get_guild
 
+
 @app_commands.guild_only()
-class Team(commands.GroupCog, group_name="team", description="Manage teams for War Games."):
+class Team(
+    commands.GroupCog, group_name="team", description="Manage teams for War Games."
+):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="create", description="Create a new team for a season of War Games.")
+    @app_commands.command(
+        name="create", description="Create a new team for a season of War Games."
+    )
     @app_commands.describe(
-        season_id="The season where the team will participate.",
+        season_code="The season where the team will participate.",
         name="The name of the team to create.",
         code="The code of the team to create.",
     )
-    @app_commands.rename(season_id="season")
-    @app_commands.autocomplete(season_id=active_season_autocomplete)
+    @app_commands.rename(season_code="season")
+    @app_commands.autocomplete(season_code=active_season_autocomplete)
     @requires_host()
     async def create_team(
         self,
         interaction: discord.Interaction,
-        season_id: int,
+        season_code: str,
         name: app_commands.Range[str, TEAM_NAME_MIN_LENGTH, TEAM_NAME_MAX_LENGTH],
         code: app_commands.Range[str, TEAM_CODE_MIN_LENGTH, TEAM_CODE_MAX_LENGTH],
     ):
 
         server = get_interaction_guild(interaction)
-        
+
         guild = await get_guild(server.id)
-        season = await guild.get_active_season_by_id(season_id)
+        season = await guild.get_active_season_by_code(season_code)
 
         name = name.strip()
 
@@ -79,34 +84,34 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
             color=discord.Color.green(),
         )
 
-        embed.add_field(name="Name", value=team.name, inline=False)
-        embed.add_field(name="Code", value=team.code, inline=False)
+        embed.add_field(name="Name", value=team.name, inline=True)
+        embed.add_field(name="Code", value=team.code, inline=True)
 
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="info", description="Display information about a team.")
     @app_commands.describe(
-        season_id="The season the team participates in.",
-        team_id="The team to display.",
+        season_code="The season the team participates in.",
+        team_code="The team to display.",
     )
-    @app_commands.rename(season_id="season", team_id="team")
+    @app_commands.rename(season_code="season", team_code="team")
     @app_commands.autocomplete(
-        season_id=active_season_autocomplete,
-        team_id=season_team_autocomplete,
+        season_code=active_season_autocomplete,
+        team_code=season_team_autocomplete,
     )
     async def team_info(
         self,
         interaction: discord.Interaction,
-        season_id: int,
-        team_id: int,
+        season_code: str,
+        team_code: str,
     ):
 
         server = get_interaction_guild(interaction)
-        
-        guild = await get_guild(server.id)
-        season = await guild.get_active_season_by_id(season_id)
 
-        team = await season.get_team_by_id(team_id)
+        guild = await get_guild(server.id)
+        season = await guild.get_active_season_by_code(season_code)
+
+        team = await season.get_team_by_code(team_code)
 
         if team is None:
             raise TeamNotFound()
@@ -119,17 +124,18 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
             color=discord.Color.blue(),
         )
 
-        info_embed.add_field(name="Name", value=team.name, inline=False)
-        info_embed.add_field(name="Code", value=team.code, inline=False)
+        info_embed.add_field(name="Name", value=team.name, inline=True)
+        info_embed.add_field(name="Code", value=team.code, inline=True)
         info_embed.add_field(
             name="Size",
             value=f"{len(members)}/{season.team_size}",
             inline=False,
         )
 
-        players = "\n".join(
-            f"• <@{member.user_id}>" for member in members
-        ) or "*This team doesn't have any players.*"
+        players = (
+            "\n".join(f"• <@{member.user_id}>" for member in members)
+            or "*This team doesn't have any players.*"
+        )
         info_embed.add_field(
             name="Players",
             value=players,
@@ -138,30 +144,32 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
 
         await interaction.response.send_message(embed=info_embed)
 
-    @app_commands.command(name="delete", description="Delete a team from a season of War Games.")
-    @app_commands.describe(
-        season_id="The season the team participates in.",
-        team_id="The name of the team to delete.",
+    @app_commands.command(
+        name="delete", description="Delete a team from a season of War Games."
     )
-    @app_commands.rename(season_id="season", team_id="team")
+    @app_commands.describe(
+        season_code="The season the team participates in.",
+        team_code="The team to delete.",
+    )
+    @app_commands.rename(season_code="season", team_code="team")
     @app_commands.autocomplete(
-        season_id=active_season_autocomplete,
-        team_id=season_team_autocomplete,
+        season_code=active_season_autocomplete,
+        team_code=season_team_autocomplete,
     )
     @requires_host()
     async def delete_team(
         self,
         interaction: discord.Interaction,
-        season_id: int,
-        team_id: int,
+        season_code: str,
+        team_code: str,
     ):
 
         server = get_interaction_guild(interaction)
-        
-        guild = await get_guild(server.id)
-        season = await guild.get_active_season_by_id(season_id)
 
-        team = await season.get_team_by_id(team_id)
+        guild = await get_guild(server.id)
+        season = await guild.get_active_season_by_code(season_code)
+
+        team = await season.get_team_by_code(team_code)
 
         team.remove()
 
@@ -175,21 +183,21 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
 
     @app_commands.command(name="add-player", description="Add a player to a team.")
     @app_commands.describe(
-        season_id="The season the team participates in.",
-        team_id="The team to add the player to.",
+        season_code="The season the team participates in.",
+        team_code="The team to add the player to.",
         member="The name of the player to add.",
     )
-    @app_commands.rename(season_id="season", team_id="team")
+    @app_commands.rename(season_code="season", team_code="team")
     @app_commands.autocomplete(
-        season_id=active_season_autocomplete,
-        team_id=season_team_autocomplete,
+        season_code=active_season_autocomplete,
+        team_code=season_team_autocomplete,
     )
     @requires_host()
     async def add_player(
         self,
         interaction: discord.Interaction,
-        season_id: int,
-        team_id: int,
+        season_code: str,
+        team_code: str,
         member: discord.Member,
     ):
         server = get_interaction_guild(interaction)
@@ -210,12 +218,12 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         if participant_role not in member.roles:
             raise MemberMissingParticipantRole()
 
-        season = await guild.get_active_season_by_id(season_id)
+        season = await guild.get_active_season_by_code(season_code)
 
         if await season.has_player(member.id):
             raise PlayerAlreadyAssigned()
-        
-        team = await season.get_team_by_id(team_id)
+
+        team = await season.get_team_by_code(team_code)
 
         if await team.get_members_count() >= season.team_size:
             raise TeamFull()
@@ -235,30 +243,32 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
 
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="remove-player", description="Remove a player from a team.")
+    @app_commands.command(
+        name="remove-player", description="Remove a player from a team."
+    )
     @app_commands.describe(
-        season_id="The season the team participates in.",
-        team_id="The team to remove the player from.",
+        season_code="The season the team participates in.",
+        team_code="The team to remove the player from.",
         member="The name of the player to remove.",
     )
-    @app_commands.rename(season_id="season", team_id="team")
+    @app_commands.rename(season_code="season", team_code="team")
     @app_commands.autocomplete(
-        season_id=active_season_autocomplete,
-        team_id=season_team_autocomplete,
+        season_code=active_season_autocomplete,
+        team_code=season_team_autocomplete,
     )
     @requires_host()
     async def remove_player(
         self,
         interaction: discord.Interaction,
-        season_id: int,
-        team_id: int,
+        season_code: str,
+        team_code: str,
         member: discord.Member,
     ):
         server = get_interaction_guild(interaction)
 
         guild = await get_guild(server.id)
-        season = await guild.get_active_season_by_id(season_id)
-        team = await season.get_team_by_id(team_id)
+        season = await guild.get_active_season_by_code(season_code)
+        team = await season.get_team_by_code(team_code)
 
         await team.remove_member(member.id)
 

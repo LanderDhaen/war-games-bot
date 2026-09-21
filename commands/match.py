@@ -1,9 +1,9 @@
 from contextlib import suppress
 
 import discord
+from asyncpg.exceptions import ForeignKeyViolationError
 from discord import app_commands
 from discord.ext import commands
-from peewee import IntegrityError
 
 from core.autocomplete import (
     active_season_autocomplete,
@@ -23,33 +23,37 @@ from core.errors import (
 
 
 @app_commands.guild_only()
-class Match(commands.GroupCog, group_name="match", description="Manage matches for War Games."):
+class Match(
+    commands.GroupCog, group_name="match", description="Manage matches for War Games."
+):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="schedule", description="Schedule a match between two teams.")
+    @app_commands.command(
+        name="schedule", description="Schedule a match between two teams."
+    )
     @app_commands.describe(
-        season_id="The season where the match will be played.",
-        team_a_id="The first team.",
-        team_b_id="The second team.",
+        season_code="The season where the match will be played.",
+        team_a_code="The first team.",
+        team_b_code="The second team.",
     )
     @app_commands.rename(
-        season_id="season",
-        team_a_id="team-a",
-        team_b_id="team-b",
+        season_code="season",
+        team_a_code="team-a",
+        team_b_code="team-b",
     )
     @app_commands.autocomplete(
-        season_id=active_season_autocomplete,
-        team_a_id=season_team_autocomplete,
-        team_b_id=match_team_b_autocomplete,
+        season_code=active_season_autocomplete,
+        team_a_code=season_team_autocomplete,
+        team_b_code=match_team_b_autocomplete,
     )
     @requires_host()
     async def schedule_match(
         self,
         interaction: discord.Interaction,
-        season_id: int,
-        team_a_id: int,
-        team_b_id: int,
+        season_code: str,
+        team_a_code: str,
+        team_b_code: str,
     ):
         server = get_interaction_guild(interaction)
 
@@ -68,13 +72,13 @@ class Match(commands.GroupCog, group_name="match", description="Manage matches f
         if not isinstance(channel, discord.TextChannel):
             raise MissingResultsChannelConfiguration()
 
-        season = await guild.get_active_season_by_id(season_id)
-        team_a = await season.get_team_by_id(team_a_id)
+        season = await guild.get_active_season_by_code(season_code)
+        team_a = await season.get_team_by_code(team_a_code)
 
         if not team_a:
             raise TeamNotFound()
 
-        team_b = await season.get_team_by_id(team_b_id)
+        team_b = await season.get_team_by_code(team_b_code)
 
         if not team_b:
             raise TeamNotFound()
@@ -89,13 +93,17 @@ class Match(commands.GroupCog, group_name="match", description="Manage matches f
             raise EmptyMatchTeam()
 
         try:
-            thread = await channel.create_thread(name=f"{team_a.name} vs {team_b.name}", auto_archive_duration=10080, type=discord.ChannelType.private_thread)
+            thread = await channel.create_thread(
+                name=f"{team_a.name} vs {team_b.name}",
+                auto_archive_duration=10080,
+                type=discord.ChannelType.private_thread,
+            )
         except discord.HTTPException:
             raise MatchThreadCreationFailed()
 
         try:
             await season.schedule_match(team_a, team_b, thread.id)
-        except IntegrityError:
+        except ForeignKeyViolationError:
             with suppress(discord.HTTPException):
                 await thread.delete()
 
@@ -118,17 +126,30 @@ class Match(commands.GroupCog, group_name="match", description="Manage matches f
         )
 
         thread_embed.add_field(name="Team A", value=team_a.name, inline=True)
-        thread_embed.add_field(name="Players", value="\n".join(
-            f"• <@{membership.user_id}>" for membership in team_a_memberships
-        ), inline=True)
-        thread_embed.add_field(name="\u200b", value="\u200b", inline=True)  # Add a blank field for spacing
+        thread_embed.add_field(
+            name="Players",
+            value="\n".join(
+                f"• <@{membership.user_id}>" for membership in team_a_memberships
+            ),
+            inline=True,
+        )
+        thread_embed.add_field(
+            name="\u200b", value="\u200b", inline=True
+        )  # Add a blank field for spacing
 
         thread_embed.add_field(name="Team B", value=team_b.name, inline=True)
-        thread_embed.add_field(name="Players", value="\n".join(
-            f"• <@{membership.user_id}>" for membership in team_b_memberships), inline=True)
-        thread_embed.add_field(name="\u200b", value="\u200b", inline=True)  # Add a blank field for spacing
+        thread_embed.add_field(
+            name="Players",
+            value="\n".join(
+                f"• <@{membership.user_id}>" for membership in team_b_memberships
+            ),
+            inline=True,
+        )
+        thread_embed.add_field(
+            name="\u200b", value="\u200b", inline=True
+        )  # Add a blank field for spacing
 
-        await thread.send( content=thread_message_content, embed=thread_embed)
+        await thread.send(content=thread_message_content, embed=thread_embed)
 
         embed = discord.Embed(
             title="Match Scheduled",
@@ -140,6 +161,7 @@ class Match(commands.GroupCog, group_name="match", description="Manage matches f
         )
 
         await interaction.followup.send(embed=embed)
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Match(bot))

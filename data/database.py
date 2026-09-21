@@ -2,9 +2,22 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from asyncpg.exceptions import CheckViolationError, StringDataRightTruncationError, UniqueViolationError
+from asyncpg.exceptions import (
+    CheckViolationError,
+    StringDataRightTruncationError,
+    UniqueViolationError,
+)
 from piccolo.table import Table, create_db_tables, drop_db_tables
-from piccolo.columns import BigInt, OnDelete, Serial, ForeignKey, Text, Integer, Timestamptz, Varchar
+from piccolo.columns import (
+    BigInt,
+    OnDelete,
+    Serial,
+    ForeignKey,
+    Text,
+    Integer,
+    Timestamptz,
+    Varchar,
+)
 from piccolo.columns.defaults.timestamptz import TimestamptzNow
 from piccolo.constraints import Check, Unique
 from config import (
@@ -36,10 +49,12 @@ from data.enums import SeasonStatus, MatchStatus
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
+
 class BaseTable(Table):
     id = Serial(primary_key=True)
     created_at = Timestamptz(default=TimestamptzNow())
     modified_at = Timestamptz(default=TimestamptzNow(), auto_update=utc_now)
+
 
 class Guild(BaseTable):
     guild_id = BigInt(unique=True)
@@ -48,7 +63,9 @@ class Guild(BaseTable):
     game_channel_id = BigInt(unique=True)
     results_channel_id = BigInt(unique=True)
 
-    async def start_season(self, name: str, code: str, team_size: int, starts_at: datetime) -> Season:
+    async def start_season(
+        self, name: str, code: str, team_size: int, starts_at: datetime
+    ) -> Season:
         season = Season(
             name=name,
             code=code,
@@ -62,7 +79,7 @@ class Guild(BaseTable):
             if error.constraint_name == "unique_guild_code":
                 raise DuplicateSeasonCode() from None
             raise error
-        
+
         except CheckViolationError as error:
             match error.constraint_name:
                 case "check_season_name_not_empty":
@@ -73,19 +90,19 @@ class Guild(BaseTable):
                     raise InvalidSeasonTeamSize() from None
                 case _:
                     raise error
-        
+
         except StringDataRightTruncationError as error:
             if len(name) > SEASON_NAME_MAX_LENGTH:
                 raise InvalidSeasonName() from None
             if len(code) > SEASON_CODE_MAX_LENGTH:
                 raise InvalidSeasonCode() from None
-            
+
             raise error
- 
+
         return season
 
-    async def finish_season(self, season_id: int) -> Season:
-        season = await self.get_season_by_id(season_id)
+    async def finish_season(self, season_code: str) -> Season:
+        season = await self.get_season_by_code(season_code)
 
         season.status = SeasonStatus.FINISHED
 
@@ -94,28 +111,41 @@ class Guild(BaseTable):
         return season
 
     async def get_seasons(self) -> list[Season]:
-        return await Season.objects().where(Season.guild == self).order_by(Season.starts_at, ascending=False)
+        return (
+            await Season.objects()
+            .where(Season.guild == self)
+            .order_by(Season.starts_at, ascending=False)
+        )
 
     async def get_active_seasons(self) -> list[Season]:
-        return await Season.objects().where((Season.guild == self) & (Season.status == SeasonStatus.ACTIVE)).order_by(Season.starts_at, ascending=False)
+        return (
+            await Season.objects()
+            .where((Season.guild == self) & (Season.status == SeasonStatus.ACTIVE))
+            .order_by(Season.starts_at, ascending=False)
+        )
 
-    async def get_season_by_id(self, season_id: int) -> Season:
+    async def get_season_by_code(self, season_code: str) -> Season:
 
-        season = await Season.objects().where(Season.id == season_id).first()
+        season = (
+            await Season.objects()
+            .where((Season.guild == self) & (Season.code == season_code))
+            .first()
+        )
 
         if season is None:
             raise SeasonNotFound()
-        
+
         return season
 
-    async def get_active_season_by_id(self, season_id: int) -> Season:
+    async def get_active_season_by_code(self, season_code: str) -> Season:
 
-        season = await self.get_season_by_id(season_id)
-        
+        season = await self.get_season_by_code(season_code)
+
         if season.status != SeasonStatus.ACTIVE:
             raise SeasonNotActive()
 
         return season
+
 
 class Season(BaseTable):
     name = Varchar(length=SEASON_NAME_MAX_LENGTH)
@@ -135,8 +165,7 @@ class Season(BaseTable):
         name="check_season_code_not_empty",
     )
     check_team_size = Check(
-        (team_size >= SEASON_TEAM_SIZE_MIN)
-        & (team_size <= SEASON_TEAM_SIZE_MAX),
+        (team_size >= SEASON_TEAM_SIZE_MIN) & (team_size <= SEASON_TEAM_SIZE_MAX),
         name="check_team_size",
     )
 
@@ -176,12 +205,16 @@ class Season(BaseTable):
             raise error
 
         return team
-        
+
     async def get_teams(self) -> list[Team]:
         return await Team.objects().where(Team.season == self).order_by(Team.name)
 
-    async def get_team_by_id(self, team_id: int) -> Team:
-        team = await Team.objects().where(Team.id == team_id).first()
+    async def get_team_by_code(self, team_code: str) -> Team:
+        team = (
+            await Team.objects()
+            .where((Team.season == self) & (Team.code == team_code))
+            .first()
+        )
 
         if team is None:
             raise TeamNotFound()
@@ -189,7 +222,9 @@ class Season(BaseTable):
         return team
 
     async def has_player(self, user_id: int) -> bool:
-        return await TeamMember.exists().where((TeamMember.season == self) & (TeamMember.user_id == user_id))
+        return await TeamMember.exists().where(
+            (TeamMember.season == self) & (TeamMember.user_id == user_id)
+        )
 
     async def schedule_match(self, team_a: Team, team_b: Team, thread_id: int) -> Match:
         match = Match(
@@ -202,6 +237,7 @@ class Season(BaseTable):
         await match.save()
 
         return match
+
 
 class Team(BaseTable):
     name = Varchar(length=TEAM_NAME_MAX_LENGTH)
@@ -223,7 +259,11 @@ class Team(BaseTable):
         return self.name
 
     async def get_members(self) -> list[TeamMember]:
-        return await TeamMember.objects().where(TeamMember.team == self).order_by(TeamMember.user_id)
+        return (
+            await TeamMember.objects()
+            .where(TeamMember.team == self)
+            .order_by(TeamMember.user_id)
+        )
 
     async def add_member(self, user_id: int) -> TeamMember:
         member = TeamMember(
@@ -236,7 +276,11 @@ class Team(BaseTable):
         return member
 
     async def remove_member(self, user_id: int) -> TeamMember:
-        member = await TeamMember.objects().where((TeamMember.team == self) & (TeamMember.user_id == user_id)).first()
+        member = (
+            await TeamMember.objects()
+            .where((TeamMember.team == self) & (TeamMember.user_id == user_id))
+            .first()
+        )
 
         if member is None:
             raise PlayerNotInTeam()
@@ -248,6 +292,7 @@ class Team(BaseTable):
     async def get_members_count(self) -> int:
         return await TeamMember.count().where(TeamMember.team == self)
 
+
 class TeamMember(BaseTable):
     user_id = BigInt()
     season = ForeignKey(references=Season, on_delete=OnDelete.cascade)
@@ -255,6 +300,7 @@ class TeamMember(BaseTable):
 
     unique_user_season = Unique([user_id, season], name="unique_user_season")
     unique_user_team = Unique([user_id, team], name="unique_user_team")
+
 
 class Match(BaseTable):
     season = ForeignKey(references=Season, on_delete=OnDelete.cascade)
@@ -264,7 +310,13 @@ class Match(BaseTable):
     status = Text(default=MatchStatus.OPEN, choices=MatchStatus)
 
 
-async def configure_guild(guild_id: int, host_role_id: int, participant_role_id: int, game_channel_id: int, results_channel_id: int):
+async def configure_guild(
+    guild_id: int,
+    host_role_id: int,
+    participant_role_id: int,
+    game_channel_id: int,
+    results_channel_id: int,
+):
 
     guild = await Guild.objects().where(Guild.guild_id == guild_id).first()
 
@@ -288,8 +340,8 @@ async def configure_guild(guild_id: int, host_role_id: int, participant_role_id:
         await guild.save()
         created = True
 
-
     return guild, created
+
 
 async def get_guild(guild_id: int) -> Guild:
     guild = await Guild.objects().where(Guild.guild_id == guild_id).first()
@@ -299,7 +351,7 @@ async def get_guild(guild_id: int) -> Guild:
 
     return guild
 
-async def create_tables() -> None:
 
+async def create_tables() -> None:
     await drop_db_tables(Guild, Season, Team, TeamMember, Match)
     await create_db_tables(Guild, Season, Team, TeamMember, Match, if_not_exists=True)
