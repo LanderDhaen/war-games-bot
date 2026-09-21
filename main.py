@@ -22,10 +22,11 @@ class WarGamesBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self):
-        await create_tables()
+        # await create_tables()
         await self.load_extension("commands.setup") 
         await self.load_extension("commands.season")
         await self.load_extension("commands.team")
+        await self.load_extension("commands.match")
 
 bot = WarGamesBot()
 logger = logging.getLogger(__name__)
