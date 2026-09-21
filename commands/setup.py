@@ -37,30 +37,30 @@ class Setup(commands.GroupCog, group_name="setup", description="Configure your s
         updated_role = server.get_role(guild.host_role_id)
         updated_participant_role = server.get_role(guild.participant_role_id)
         updated_game_channel = server.get_channel(guild.game_channel_id)
-        updated_channel = server.get_channel(guild.results_channel_id)
+        updated_results_channel = server.get_channel(guild.results_channel_id)
     
         if not updated_role:
 
             try:
-                await server.fetch_role(guild.host_role_id)
+                updated_role = await server.fetch_role(guild.host_role_id)
             except discord.NotFound:
                 raise MissingHostRoleConfiguration()
 
         if not updated_participant_role:
             try:
-                await server.fetch_role(guild.participant_role_id)
+                updated_participant_role = await server.fetch_role(guild.participant_role_id)
             except discord.NotFound:
                 raise MissingParticipantRoleConfiguration()
 
         if not updated_game_channel:
             try:
-                await server.fetch_channel(guild.game_channel_id)
+                updated_game_channel = await server.fetch_channel(guild.game_channel_id)
             except discord.NotFound:
                 raise MissingGameChannelConfiguration()
 
-        if not updated_channel:
+        if not updated_results_channel:
             try:
-                await server.fetch_channel(guild.results_channel_id)
+                updated_results_channel = await server.fetch_channel(guild.results_channel_id)
             except discord.NotFound:
                 raise MissingResultsChannelConfiguration()
 
@@ -73,7 +73,7 @@ class Setup(commands.GroupCog, group_name="setup", description="Configure your s
         embed.add_field(name="The role that will be assigned to hosts.", value=f"{updated_role.mention}", inline=False)
         embed.add_field(name="The role that will be assigned to participants.", value=f"{updated_participant_role.mention}", inline=False)
         embed.add_field(name="The channel where games will be posted.", value=f"{updated_game_channel.mention}", inline=False)
-        embed.add_field(name="The channel where game results will be posted.", value=f"{updated_channel.mention}", inline=False)
+        embed.add_field(name="The channel where game results will be posted.", value=f"{updated_results_channel.mention}", inline=False)
 
         await interaction.response.send_message(embed=embed)
         

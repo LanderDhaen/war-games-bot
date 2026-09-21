@@ -239,6 +239,7 @@ async def configure_guild(guild_id: int, host_role_id: int, participant_role_id:
             guild_id=guild_id,
             host_role_id=host_role_id,
             participant_role_id=participant_role_id,
+            game_channel_id=game_channel_id,
             results_channel_id=results_channel_id,
         )
         await guild.save()
