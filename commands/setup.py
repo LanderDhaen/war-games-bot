@@ -85,7 +85,8 @@ class Setup(
         embed = discord.Embed(
             title="Server Configured",
             description=(
-                f"The following settings have been {('added' if created else 'updated')} in **{server.name}**:\n\n"
+                f"The following settings have been "
+                f"{('added' if created else 'updated')} in **{server.name}**:\n\n"
             ),
             color=discord.Color.green(),
         )

@@ -27,7 +27,10 @@ class UserFacingError(app_commands.AppCommandError):
 
 class MissingGuildConfiguration(UserFacingError, app_commands.CheckFailure):
     title = "Missing Configuration"
-    message = "This server is not yet configured. An administrator can use `/setup server` to get started."
+    message = (
+        "This server is not yet configured. "
+        "An administrator can use `/setup server` to get started."
+    )
 
 
 class MissingHostRole(UserFacingError, app_commands.CheckFailure):
@@ -47,32 +50,50 @@ class GuildOnly(UserFacingError, app_commands.CheckFailure):
 
 class MissingHostRoleConfiguration(UserFacingError):
     title = "Missing Configuration"
-    message = "The configured host role no longer exists. Use `/setup server` to reconfigure the settings."
+    message = (
+        "The configured host role no longer exists. "
+        "Use `/setup server` to reconfigure the settings."
+    )
 
 
 class MissingParticipantRoleConfiguration(UserFacingError):
     title = "Missing Configuration"
-    message = "The configured participant role no longer exists. Use `/setup server` to reconfigure the settings."
+    message = (
+        "The configured participant role no longer exists. "
+        "Use `/setup server` to reconfigure the settings."
+    )
 
 
 class MissingGameChannelConfiguration(UserFacingError):
     title = "Missing Configuration"
-    message = "The configured game channel no longer exists. Use `/setup server` to reconfigure the settings."
+    message = (
+        "The configured game channel no longer exists. "
+        "Use `/setup server` to reconfigure the settings."
+    )
 
 
 class MissingResultsChannelConfiguration(UserFacingError):
     title = "Missing Configuration"
-    message = "The configured results channel no longer exists. Use `/setup server` to reconfigure the settings."
+    message = (
+        "The configured results channel no longer exists. "
+        "Use `/setup server` to reconfigure the settings."
+    )
 
 
 class InvalidSeasonName(UserFacingError):
     title = "Invalid Configuration"
-    message = f"The season name must contain between {SEASON_NAME_MIN_LENGTH} and {SEASON_NAME_MAX_LENGTH} characters."
+    message = (
+        f"The season name must contain between {SEASON_NAME_MIN_LENGTH} and "
+        f"{SEASON_NAME_MAX_LENGTH} characters."
+    )
 
 
 class InvalidSeasonCode(UserFacingError):
     title = "Invalid Configuration"
-    message = f"The season code must contain between {SEASON_CODE_MIN_LENGTH} and {SEASON_CODE_MAX_LENGTH} characters."
+    message = (
+        f"The season code must contain between {SEASON_CODE_MIN_LENGTH} and "
+        f"{SEASON_CODE_MAX_LENGTH} characters."
+    )
 
 
 class DuplicateSeasonCode(UserFacingError):
@@ -89,7 +110,10 @@ class InvalidSeasonTeamSize(UserFacingError):
 
 class InvalidSeasonStart(UserFacingError):
     title = "Invalid Configuration"
-    message = "This is not a valid date and time. Please use the ISO format, for example `2026-09-20 19:00`."
+    message = (
+        "This is not a valid date and time. Please use the ISO format, "
+        "for example `2026-09-20 19:00`."
+    )
 
 
 class SeasonNotFound(UserFacingError):
@@ -104,12 +128,18 @@ class SeasonNotActive(UserFacingError):
 
 class InvalidTeamName(UserFacingError):
     title = "Invalid Configuration"
-    message = f"The team name must contain between {TEAM_NAME_MIN_LENGTH} and {TEAM_NAME_MAX_LENGTH} characters."
+    message = (
+        f"The team name must contain between {TEAM_NAME_MIN_LENGTH} and "
+        f"{TEAM_NAME_MAX_LENGTH} characters."
+    )
 
 
 class InvalidTeamCode(UserFacingError):
     title = "Invalid Configuration"
-    message = f"The team code must contain between {TEAM_CODE_MIN_LENGTH} and {TEAM_CODE_MAX_LENGTH} characters."
+    message = (
+        f"The team code must contain between {TEAM_CODE_MIN_LENGTH} and "
+        f"{TEAM_CODE_MAX_LENGTH} characters."
+    )
 
 
 class DuplicateTeamName(UserFacingError):

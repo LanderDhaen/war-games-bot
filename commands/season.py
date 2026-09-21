@@ -118,7 +118,10 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
 
         embed = discord.Embed(
             title="Season Information",
-            description=f"The following season {('was hosted' if is_finished else 'is going on')} in **{server.name}**.",
+            description=(
+                f"The following season "
+                f"{('was hosted' if is_finished else 'is going on')} in **{server.name}**."
+            ),
             color=discord.Color.blue(),
         )
         embed.add_field(name="Name", value=str(season), inline=True)
