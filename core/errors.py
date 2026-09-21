@@ -1,5 +1,16 @@
 from discord import app_commands
 
+from config import (
+    SEASON_CODE_MAX_LENGTH,
+    SEASON_CODE_MIN_LENGTH,
+    SEASON_NAME_MAX_LENGTH,
+    SEASON_NAME_MIN_LENGTH,
+    SEASON_TEAM_SIZE_MAX,
+    SEASON_TEAM_SIZE_MIN,
+    TEAM_NAME_MAX_LENGTH,
+    TEAM_NAME_MIN_LENGTH,
+)
+
 class UserFacingError(app_commands.AppCommandError):
     title: str
     message: str
@@ -44,11 +55,19 @@ class MissingResultsChannelConfiguration(UserFacingError):
 
 class InvalidSeasonName(UserFacingError):
     title = "Invalid Configuration"
-    message = "The season name must contain between 1 and 100 characters."
+    message = f"The season name must contain between {SEASON_NAME_MIN_LENGTH} and {SEASON_NAME_MAX_LENGTH} characters."
+
+class InvalidSeasonCode(UserFacingError):
+    title = "Invalid Configuration"
+    message = f"The season code must contain between {SEASON_CODE_MIN_LENGTH} and {SEASON_CODE_MAX_LENGTH} characters."
+
+class DuplicateSeasonCode(UserFacingError):
+    title = "Invalid Configuration"
+    message = "A season with this code already exists in this server."
 
 class InvalidSeasonTeamSize(UserFacingError):
     title = "Invalid Configuration"
-    message = "The team size must be between 1 and 5 players."
+    message = f"The team size must be between {SEASON_TEAM_SIZE_MIN} and {SEASON_TEAM_SIZE_MAX} players."
 
 class InvalidSeasonStart(UserFacingError):
     title = "Invalid Configuration"
@@ -64,7 +83,7 @@ class SeasonNotActive(UserFacingError):
 
 class InvalidTeamName(UserFacingError):
     title = "Invalid Configuration"
-    message = "The team name must contain between 1 and 100 characters."
+    message = f"The team name must contain between {TEAM_NAME_MIN_LENGTH} and {TEAM_NAME_MAX_LENGTH} characters."
 
 class DuplicateTeamName(UserFacingError):
     title = "Invalid Configuration"

@@ -1,8 +1,10 @@
 import discord
 
+from asyncpg.exceptions import UniqueViolationError
 from discord import app_commands
 from discord.ext import commands
-from peewee import IntegrityError
+
+from config import TEAM_NAME_MAX_LENGTH, TEAM_NAME_MIN_LENGTH
 
 from core.autocomplete import (
     active_season_autocomplete,
@@ -43,7 +45,7 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         self,
         interaction: discord.Interaction,
         season_id: int,
-        name: app_commands.Range[str, 1, 100],
+        name: app_commands.Range[str, TEAM_NAME_MIN_LENGTH, TEAM_NAME_MAX_LENGTH],
     ):
 
         server = get_interaction_guild(interaction)
@@ -53,7 +55,7 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
 
         name = name.strip()
 
-        if not 1 <= len(name) <= 100:
+        if not TEAM_NAME_MIN_LENGTH <= len(name) <= TEAM_NAME_MAX_LENGTH:
             raise InvalidTeamName()
 
         team = await season.create_team(name)
@@ -205,7 +207,9 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
 
         try:
             await team.add_member(member.id)
-        except IntegrityError:
+        except UniqueViolationError as error:
+            if error.constraint_name in {"unique_user_season", "unique_user_team"}:
+                raise PlayerAlreadyAssigned() from None
             raise PlayerAddFailed() from None
 
         embed = discord.Embed(

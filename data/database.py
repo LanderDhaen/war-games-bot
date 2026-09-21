@@ -2,12 +2,31 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from asyncpg.exceptions import UniqueViolationError
-from piccolo.table import Table, create_db_tables
+from asyncpg.exceptions import CheckViolationError, StringDataRightTruncationError, UniqueViolationError
+from piccolo.table import Table, create_db_tables, drop_db_tables
 from piccolo.columns import BigInt, OnDelete, Serial, ForeignKey, Text, Integer, Timestamptz, Varchar
 from piccolo.columns.defaults.timestamptz import TimestamptzNow
-from piccolo.constraints import Unique
-from core.errors import DuplicateTeamName, MissingGuildConfiguration, PlayerNotInTeam, SeasonNotActive, SeasonNotFound, TeamNotFound
+from piccolo.constraints import Check, Unique
+from config import (
+    SEASON_CODE_MAX_LENGTH,
+    SEASON_NAME_MAX_LENGTH,
+    SEASON_TEAM_SIZE_MAX,
+    SEASON_TEAM_SIZE_MIN,
+    TEAM_NAME_MAX_LENGTH,
+)
+from core.errors import (
+    DuplicateSeasonCode,
+    DuplicateTeamName,
+    InvalidSeasonCode,
+    InvalidSeasonName,
+    InvalidSeasonTeamSize,
+    InvalidTeamName,
+    MissingGuildConfiguration,
+    PlayerNotInTeam,
+    SeasonNotActive,
+    SeasonNotFound,
+    TeamNotFound,
+)
 from data.enums import SeasonStatus, MatchStatus
 
 
@@ -26,15 +45,34 @@ class Guild(BaseTable):
     game_channel_id = BigInt(unique=True)
     results_channel_id = BigInt(unique=True)
 
-    async def start_season(self, name: str, team_size: int, starts_at: datetime) -> Season:
+    async def start_season(self, name: str, code: str, team_size: int, starts_at: datetime) -> Season:
         season = Season(
             name=name,
+            code=code,
             team_size=team_size,
             starts_at=starts_at,
             guild=self,
         )
-        await season.save()
-
+        try:
+            await season.save()
+        except UniqueViolationError as error:
+            if error.constraint_name == "unique_guild_code":
+                raise DuplicateSeasonCode() from None
+            raise error
+        
+        except CheckViolationError as error:
+            if error.constraint_name == "check_team_size":
+                raise InvalidSeasonTeamSize() from None
+            raise error
+        
+        except StringDataRightTruncationError as error:
+            if len(name) > SEASON_NAME_MAX_LENGTH:
+                raise InvalidSeasonName() from None
+            if len(code) > SEASON_CODE_MAX_LENGTH:
+                raise InvalidSeasonCode() from None
+            
+            raise error
+ 
         return season
 
     async def finish_season(self, season_id: int) -> Season:
@@ -71,12 +109,19 @@ class Guild(BaseTable):
         return season
 
 class Season(BaseTable):
-    name = Varchar(length=100)
+    name = Varchar(length=SEASON_NAME_MAX_LENGTH)
+    code = Varchar(length=SEASON_CODE_MAX_LENGTH)
     team_size = Integer()
     starts_at = Timestamptz(default=TimestamptzNow())
     status = Text(default=SeasonStatus.ACTIVE, choices=SeasonStatus)
     guild = ForeignKey(references=Guild, on_delete=OnDelete.cascade)
-    
+
+    unique_guild_code = Unique([guild, code], name="unique_guild_code")
+    check_team_size = Check(
+        (team_size >= SEASON_TEAM_SIZE_MIN)
+        & (team_size <= SEASON_TEAM_SIZE_MAX),
+        name="check_team_size",
+    )
 
     def __str__(self) -> str:
         return f"{self.name} • {self.starts_at.strftime("%B %Y")}"
@@ -89,8 +134,12 @@ class Season(BaseTable):
 
         try:
             await team.save()
-        except UniqueViolationError:
-            raise DuplicateTeamName() from None
+        except UniqueViolationError as error:
+            if error.constraint_name == "unique_name_season":
+                raise DuplicateTeamName() from None
+            raise
+        except StringDataRightTruncationError:
+            raise InvalidTeamName() from None
 
         return team
         
@@ -121,9 +170,10 @@ class Season(BaseTable):
         return match
 
 class Team(BaseTable):
-    name = Varchar(length=100)
+    name = Varchar(length=TEAM_NAME_MAX_LENGTH)
     season = ForeignKey(references=Season)
-    unique_name_season = Unique([name, season])
+
+    unique_name_season = Unique([name, season], name="unique_name_season")
 
     def __str__(self) -> str:
         return self.name
@@ -159,12 +209,17 @@ class TeamMember(BaseTable):
     season = ForeignKey(references=Season, on_delete=OnDelete.cascade)
     team = ForeignKey(references=Team, on_delete=OnDelete.cascade)
 
+    unique_user_season = Unique([user_id, season], name="unique_user_season")
+    unique_user_team = Unique([user_id, team], name="unique_user_team")
+
 class Match(BaseTable):
     season = ForeignKey(references=Season, on_delete=OnDelete.cascade)
     team_a = ForeignKey(references=Team, on_delete=OnDelete.restrict)
     team_b = ForeignKey(references=Team, on_delete=OnDelete.restrict)
     thread_id = BigInt(null=True)
     status = Text(default=MatchStatus.OPEN, choices=MatchStatus)
+
+    unique_teams_season = Unique([season, team_a, team_b], name="unique_teams_season")
 
 async def configure_guild(guild_id: int, host_role_id: int, participant_role_id: int, game_channel_id: int, results_channel_id: int):
 
@@ -201,4 +256,6 @@ async def get_guild(guild_id: int) -> Guild:
     return guild
 
 async def create_tables() -> None:
+
+    await drop_db_tables(Guild, Season, Team, TeamMember, Match)
     await create_db_tables(Guild, Season, Team, TeamMember, Match, if_not_exists=True)

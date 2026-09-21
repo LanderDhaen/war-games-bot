@@ -3,9 +3,19 @@ from datetime import datetime
 from discord.ext import commands
 from discord import app_commands
 
+from config import (
+    SEASON_CODE_MAX_LENGTH,
+    SEASON_CODE_MIN_LENGTH,
+    SEASON_NAME_MAX_LENGTH,
+    SEASON_NAME_MIN_LENGTH,
+    SEASON_TEAM_SIZE_MAX,
+    SEASON_TEAM_SIZE_MIN,
+)
+
 from core.autocomplete import active_season_autocomplete, season_autocomplete
 from core.checks import get_interaction_guild, requires_host
 from core.errors import (
+    InvalidSeasonCode,
     InvalidSeasonName,
     InvalidSeasonStart,
     InvalidSeasonTeamSize,
@@ -22,6 +32,7 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
 
     @app_commands.command(name="schedule", description="Schedule a new season of War Games.")
     @app_commands.describe(name="The name of the season to schedule.")
+    @app_commands.describe(code="The code for the season to schedule.")
     @app_commands.describe(team_size="The number of players in a team.")
     @app_commands.describe(raw_starts_at="The season start in ISO format, for example 2026-09-20 19:00.")
     @app_commands.rename(team_size="team-size")
@@ -30,8 +41,9 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
     async def schedule_season(
         self,
         interaction: discord.Interaction,
-        name: app_commands.Range[str, 1, 100],
-        team_size: app_commands.Range[int, 1, 5],
+        name: app_commands.Range[str, SEASON_NAME_MIN_LENGTH, SEASON_NAME_MAX_LENGTH],
+        code: app_commands.Range[str, SEASON_CODE_MIN_LENGTH, SEASON_CODE_MAX_LENGTH],
+        team_size: app_commands.Range[int, SEASON_TEAM_SIZE_MIN, SEASON_TEAM_SIZE_MAX],
         raw_starts_at: str,
     ):
 
@@ -41,10 +53,15 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
 
         name = name.strip()
 
-        if not 1 <= len(name) <= 100:
+        if not SEASON_NAME_MIN_LENGTH <= len(name) <= SEASON_NAME_MAX_LENGTH:
             raise InvalidSeasonName()
 
-        if not 1 <= team_size <= 5:
+        code = code.strip()
+
+        if not SEASON_CODE_MIN_LENGTH <= len(code) <= SEASON_CODE_MAX_LENGTH:
+            raise InvalidSeasonCode()
+
+        if not SEASON_TEAM_SIZE_MIN <= team_size <= SEASON_TEAM_SIZE_MAX:
             raise InvalidSeasonTeamSize()
 
         try:
@@ -52,7 +69,7 @@ class Season(commands.GroupCog, group_name="season", description="Manage seasons
         except ValueError:
             raise InvalidSeasonStart()
 
-        season = await guild.start_season(name, team_size, starts_at)
+        season = await guild.start_season(name, code, team_size, starts_at)
 
         embed = discord.Embed(
             title="Season Scheduled",
