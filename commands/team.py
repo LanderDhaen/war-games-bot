@@ -4,7 +4,12 @@ from asyncpg.exceptions import UniqueViolationError
 from discord import app_commands
 from discord.ext import commands
 
-from config import TEAM_NAME_MAX_LENGTH, TEAM_NAME_MIN_LENGTH
+from config import (
+    TEAM_CODE_MAX_LENGTH,
+    TEAM_CODE_MIN_LENGTH,
+    TEAM_NAME_MAX_LENGTH,
+    TEAM_NAME_MIN_LENGTH,
+)
 
 from core.autocomplete import (
     active_season_autocomplete,
@@ -14,6 +19,7 @@ from core.checks import get_interaction_guild, requires_host
 from core.errors import (
     BotTeamMember,
     DuplicateTeamName,
+    InvalidTeamCode,
     InvalidTeamName,
     MemberMissingParticipantRole,
     MissingParticipantRoleConfiguration,
@@ -37,6 +43,7 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
     @app_commands.describe(
         season_id="The season where the team will participate.",
         name="The name of the team to create.",
+        code="The code of the team to create.",
     )
     @app_commands.rename(season_id="season")
     @app_commands.autocomplete(season_id=active_season_autocomplete)
@@ -46,6 +53,7 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         interaction: discord.Interaction,
         season_id: int,
         name: app_commands.Range[str, TEAM_NAME_MIN_LENGTH, TEAM_NAME_MAX_LENGTH],
+        code: app_commands.Range[str, TEAM_CODE_MIN_LENGTH, TEAM_CODE_MAX_LENGTH],
     ):
 
         server = get_interaction_guild(interaction)
@@ -58,7 +66,12 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         if not TEAM_NAME_MIN_LENGTH <= len(name) <= TEAM_NAME_MAX_LENGTH:
             raise InvalidTeamName()
 
-        team = await season.create_team(name)
+        code = code.strip()
+
+        if not TEAM_CODE_MIN_LENGTH <= len(code) <= TEAM_CODE_MAX_LENGTH:
+            raise InvalidTeamCode()
+
+        team = await season.create_team(name, code)
 
         embed = discord.Embed(
             title="Team Created",
@@ -67,6 +80,7 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         )
 
         embed.add_field(name="Name", value=team.name, inline=False)
+        embed.add_field(name="Code", value=team.code, inline=False)
 
         await interaction.response.send_message(embed=embed)
 
@@ -106,6 +120,7 @@ class Team(commands.GroupCog, group_name="team", description="Manage teams for W
         )
 
         info_embed.add_field(name="Name", value=team.name, inline=False)
+        info_embed.add_field(name="Code", value=team.code, inline=False)
         info_embed.add_field(
             name="Size",
             value=f"{len(members)}/{season.team_size}",

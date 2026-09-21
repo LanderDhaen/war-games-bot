@@ -9,6 +9,8 @@ from config import (
     SEASON_TEAM_SIZE_MIN,
     TEAM_NAME_MAX_LENGTH,
     TEAM_NAME_MIN_LENGTH,
+    TEAM_CODE_MAX_LENGTH,
+    TEAM_CODE_MIN_LENGTH,
 )
 
 class UserFacingError(app_commands.AppCommandError):
@@ -85,9 +87,17 @@ class InvalidTeamName(UserFacingError):
     title = "Invalid Configuration"
     message = f"The team name must contain between {TEAM_NAME_MIN_LENGTH} and {TEAM_NAME_MAX_LENGTH} characters."
 
+class InvalidTeamCode(UserFacingError):
+    title = "Invalid Configuration"
+    message = f"The team code must contain between {TEAM_CODE_MIN_LENGTH} and {TEAM_CODE_MAX_LENGTH} characters."
+
 class DuplicateTeamName(UserFacingError):
     title = "Invalid Configuration"
     message = "A team with this name already exists in this season."
+
+class DuplicateTeamCode(UserFacingError):
+    title = "Invalid Configuration"
+    message = "A team with this code already exists in this season."
 
 class TeamNotFound(UserFacingError):
     title = "Invalid Configuration"

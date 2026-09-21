@@ -12,14 +12,17 @@ from config import (
     SEASON_NAME_MAX_LENGTH,
     SEASON_TEAM_SIZE_MAX,
     SEASON_TEAM_SIZE_MIN,
+    TEAM_CODE_MAX_LENGTH,
     TEAM_NAME_MAX_LENGTH,
 )
 from core.errors import (
     DuplicateSeasonCode,
+    DuplicateTeamCode,
     DuplicateTeamName,
     InvalidSeasonCode,
     InvalidSeasonName,
     InvalidSeasonTeamSize,
+    InvalidTeamCode,
     InvalidTeamName,
     MissingGuildConfiguration,
     PlayerNotInTeam,
@@ -61,9 +64,15 @@ class Guild(BaseTable):
             raise error
         
         except CheckViolationError as error:
-            if error.constraint_name == "check_team_size":
-                raise InvalidSeasonTeamSize() from None
-            raise error
+            match error.constraint_name:
+                case "check_season_name_not_empty":
+                    raise InvalidSeasonName() from None
+                case "check_season_code_not_empty":
+                    raise InvalidSeasonCode() from None
+                case "check_team_size":
+                    raise InvalidSeasonTeamSize() from None
+                case _:
+                    raise error
         
         except StringDataRightTruncationError as error:
             if len(name) > SEASON_NAME_MAX_LENGTH:
@@ -117,6 +126,14 @@ class Season(BaseTable):
     guild = ForeignKey(references=Guild, on_delete=OnDelete.cascade)
 
     unique_guild_code = Unique([guild, code], name="unique_guild_code")
+    check_season_name_not_empty = Check(
+        name != "",
+        name="check_season_name_not_empty",
+    )
+    check_season_code_not_empty = Check(
+        code != "",
+        name="check_season_code_not_empty",
+    )
     check_team_size = Check(
         (team_size >= SEASON_TEAM_SIZE_MIN)
         & (team_size <= SEASON_TEAM_SIZE_MAX),
@@ -126,20 +143,37 @@ class Season(BaseTable):
     def __str__(self) -> str:
         return f"{self.name} • {self.starts_at.strftime("%B %Y")}"
 
-    async def create_team(self, name: str) -> Team:
+    async def create_team(self, name: str, code: str) -> Team:
         team = Team(
             name=name,
+            code=code,
             season=self,
         )
 
         try:
             await team.save()
         except UniqueViolationError as error:
-            if error.constraint_name == "unique_name_season":
-                raise DuplicateTeamName() from None
-            raise
-        except StringDataRightTruncationError:
-            raise InvalidTeamName() from None
+            match error.constraint_name:
+                case "unique_name_season":
+                    raise DuplicateTeamName() from None
+                case "unique_team_season_code":
+                    raise DuplicateTeamCode() from None
+                case _:
+                    raise error
+        except CheckViolationError as error:
+            match error.constraint_name:
+                case "check_team_name_not_empty":
+                    raise InvalidTeamName() from None
+                case "check_team_code_not_empty":
+                    raise InvalidTeamCode() from None
+                case _:
+                    raise error
+        except StringDataRightTruncationError as error:
+            if len(name) > TEAM_NAME_MAX_LENGTH:
+                raise InvalidTeamName() from None
+            if len(code) > TEAM_CODE_MAX_LENGTH:
+                raise InvalidTeamCode() from None
+            raise error
 
         return team
         
@@ -171,9 +205,19 @@ class Season(BaseTable):
 
 class Team(BaseTable):
     name = Varchar(length=TEAM_NAME_MAX_LENGTH)
+    code = Varchar(length=TEAM_CODE_MAX_LENGTH)
     season = ForeignKey(references=Season)
 
     unique_name_season = Unique([name, season], name="unique_name_season")
+    unique_team_season_code = Unique([season, code], name="unique_team_season_code")
+    check_team_name_not_empty = Check(
+        name != "",
+        name="check_team_name_not_empty",
+    )
+    check_team_code_not_empty = Check(
+        code != "",
+        name="check_team_code_not_empty",
+    )
 
     def __str__(self) -> str:
         return self.name
@@ -219,7 +263,6 @@ class Match(BaseTable):
     thread_id = BigInt(null=True)
     status = Text(default=MatchStatus.OPEN, choices=MatchStatus)
 
-    unique_teams_season = Unique([season, team_a, team_b], name="unique_teams_season")
 
 async def configure_guild(guild_id: int, host_role_id: int, participant_role_id: int, game_channel_id: int, results_channel_id: int):
 
