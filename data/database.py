@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from aiosqlite import IntegrityError
+from asyncpg.exceptions import UniqueViolationError
 from piccolo.table import Table, create_db_tables
-from piccolo.columns import OnDelete, Serial, ForeignKey, Text, Integer, Timestamptz, Varchar
+from piccolo.columns import BigInt, OnDelete, Serial, ForeignKey, Text, Integer, Timestamptz, Varchar
 from piccolo.columns.defaults.timestamptz import TimestamptzNow
-from piccolo.constraints import Check, Unique
+from piccolo.constraints import Unique
 from core.errors import DuplicateTeamName, MissingGuildConfiguration, PlayerNotInTeam, SeasonNotActive, SeasonNotFound, TeamNotFound
 from data.enums import SeasonStatus, MatchStatus
 
@@ -20,11 +20,11 @@ class BaseTable(Table):
     modified_at = Timestamptz(default=TimestamptzNow(), auto_update=utc_now)
 
 class Guild(BaseTable):
-    guild_id = Integer(unique=True)
-    host_role_id = Integer(unique=True)
-    participant_role_id = Integer(unique=True)
-    game_channel_id = Integer(unique=True)
-    results_channel_id = Integer(unique=True)
+    guild_id = BigInt(unique=True)
+    host_role_id = BigInt(unique=True)
+    participant_role_id = BigInt(unique=True)
+    game_channel_id = BigInt(unique=True)
+    results_channel_id = BigInt(unique=True)
 
     async def start_season(self, name: str, team_size: int, starts_at: datetime) -> Season:
         season = Season(
@@ -89,7 +89,7 @@ class Season(BaseTable):
 
         try:
             await team.save()
-        except IntegrityError:
+        except UniqueViolationError:
             raise DuplicateTeamName() from None
 
         return team
@@ -123,6 +123,7 @@ class Season(BaseTable):
 class Team(BaseTable):
     name = Varchar(length=100)
     season = ForeignKey(references=Season)
+    unique_name_season = Unique([name, season])
 
     def __str__(self) -> str:
         return self.name
@@ -154,7 +155,7 @@ class Team(BaseTable):
         return await TeamMember.count().where(TeamMember.team == self)
 
 class TeamMember(BaseTable):
-    user_id = Integer()
+    user_id = BigInt()
     season = ForeignKey(references=Season, on_delete=OnDelete.cascade)
     team = ForeignKey(references=Team, on_delete=OnDelete.cascade)
 
@@ -162,7 +163,7 @@ class Match(BaseTable):
     season = ForeignKey(references=Season, on_delete=OnDelete.cascade)
     team_a = ForeignKey(references=Team, on_delete=OnDelete.restrict)
     team_b = ForeignKey(references=Team, on_delete=OnDelete.restrict)
-    thread_id = Integer(null=True)
+    thread_id = BigInt(null=True)
     status = Text(default=MatchStatus.OPEN, choices=MatchStatus)
 
 async def configure_guild(guild_id: int, host_role_id: int, participant_role_id: int, game_channel_id: int, results_channel_id: int):
@@ -201,12 +202,3 @@ async def get_guild(guild_id: int) -> Guild:
 
 async def create_tables() -> None:
     await create_db_tables(Guild, Season, Team, TeamMember, Match, if_not_exists=True)
-
-    # Can't use `Unique` constraint from Piccolo because of limitations with SQLite
-
-    await Team.raw(
-        """
-        CREATE UNIQUE INDEX IF NOT EXISTS team_season_name_unique
-        ON team (season, name COLLATE NOCASE)
-        """
-    )

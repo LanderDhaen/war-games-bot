@@ -1,6 +1,9 @@
-from piccolo.engine.sqlite import SQLiteEngine
+from piccolo.engine.postgres import PostgresEngine
 
-DB = SQLiteEngine(
-    path="db/war-games.db",
-    timeout=60,
-)
+from config import DATABASE_URL
+
+
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is missing from the configuration.")
+
+DB = PostgresEngine(config={"dsn": DATABASE_URL})
