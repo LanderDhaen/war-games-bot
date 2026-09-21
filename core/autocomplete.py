@@ -1,21 +1,25 @@
 import discord
 
 from discord import app_commands
-
-from core.checks import get_guild_config
-
+from data.database import get_guild
 
 async def active_season_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[app_commands.Choice[int]]:
-    guild = await get_guild_config(interaction.guild)
+
+    server = interaction.guild
+
+    if server is None:
+        raise app_commands.NoPrivateMessage()
+    
+    guild = await get_guild(server.id)
     seasons = await guild.get_active_seasons()
 
     return [
         app_commands.Choice(name=str(season)[:100], value=season.id)
         for season in seasons
-        if current.casefold() in season.name.casefold()
+        if current.casefold() in str(season).casefold()
     ][:25]
 
 
@@ -23,13 +27,19 @@ async def season_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[app_commands.Choice[int]]:
-    guild = await get_guild_config(interaction.guild)
+
+    server = interaction.guild
+
+    if server is None:
+        raise app_commands.NoPrivateMessage()
+    
+    guild = await get_guild(server.id)
     seasons = await guild.get_seasons()
 
     return [
         app_commands.Choice(name=str(season)[:100], value=season.id)
         for season in seasons
-        if current.casefold() in season.name.casefold()
+        if current.casefold() in str(season).casefold()
     ][:25]
 
 
@@ -42,7 +52,7 @@ async def season_team_autocomplete(
     if not isinstance(season_id, int):
         return []
 
-    guild = await get_guild_config(interaction.guild)
+    guild = await get_guild(interaction.guild)
     season = await guild.get_active_season(season_id)
 
     if season is None:
@@ -67,7 +77,7 @@ async def match_team_b_autocomplete(
         return []
 
     team_a_id = getattr(interaction.namespace, "team-a", None)
-    guild = await get_guild_config(interaction.guild)
+    guild = await get_guild(interaction.guild)
     season = await guild.get_active_season(season_id)
 
     if season is None:

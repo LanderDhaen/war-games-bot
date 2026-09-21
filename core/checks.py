@@ -5,7 +5,7 @@ from core.errors import (
     MissingHostRole,
     MissingHostRoleConfiguration,
 )
-from data.database import get_configuration
+from data.database import get_guild
 
 
 def requires_config():
@@ -16,7 +16,7 @@ def requires_config():
         if discord_guild is None:
             raise app_commands.NoPrivateMessage()
 
-        await get_configuration(discord_guild)
+        await get_guild(discord_guild)
         
         return True
 
@@ -25,13 +25,13 @@ def requires_config():
 
 def requires_host():
     async def predicate(interaction: discord.Interaction) -> bool:
-        discord_guild = interaction.guild
+        server = interaction.guild
 
-        if discord_guild is None:
+        if server is None:
             raise app_commands.NoPrivateMessage()
 
-        guild = await get_configuration(discord_guild)
-        host_role = discord_guild.get_role(guild.host_role_id)
+        guild = await get_guild(server.id)
+        host_role = server.get_role(guild.host_role_id)
 
         if host_role is None:
             raise MissingHostRoleConfiguration()
