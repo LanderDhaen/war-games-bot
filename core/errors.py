@@ -136,6 +136,11 @@ class DuplicatePhase(UserFacingError):
     message = "This phase has already been scheduled for the selected season."
 
 
+class PhaseNotFound(UserFacingError):
+    title = "Invalid Configuration"
+    message = "This phase has not been scheduled for the selected season."
+
+
 class InvalidTeamName(UserFacingError):
     title = "Invalid Configuration"
     message = (

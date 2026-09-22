@@ -19,6 +19,27 @@ async def phase_name_autocomplete(
     ][:25]
 
 
+async def season_phase_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[str]]:
+    server = get_interaction_guild(interaction)
+    season_code = getattr(interaction.namespace, "season", None)
+
+    if not isinstance(season_code, str):
+        return []
+
+    guild = await get_guild(server.id)
+    season = await guild.get_active_season_by_code(season_code)
+    phases = await season.get_phases()
+
+    return [
+        app_commands.Choice(name=str(phase), value=phase.name)
+        for phase in phases
+        if current.casefold() in phase.name.casefold()
+    ][:25]
+
+
 async def active_season_autocomplete(
     interaction: discord.Interaction,
     current: str,

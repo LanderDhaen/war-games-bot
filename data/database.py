@@ -40,6 +40,7 @@ from core.errors import (
     InvalidTeamCode,
     InvalidTeamName,
     MissingGuildConfiguration,
+    PhaseNotFound,
     PlayerNotInTeam,
     SeasonNotActive,
     SeasonNotFound,
@@ -183,6 +184,23 @@ class Season(BaseTable):
             if error.constraint_name == "unique_phase_season_name":
                 raise DuplicatePhase() from None
             raise
+
+        return phase
+
+    async def get_phases(self) -> list[Phase]:
+        return await Phase.objects().where(Phase.season == self).order_by(Phase.created_at)
+
+    async def get_phase_by_name(self, name: PhaseName) -> Phase:
+        phase = await Phase.objects().where((Phase.season == self) & (Phase.name == name)).first()
+
+        if phase is None:
+            raise PhaseNotFound()
+
+        return phase
+
+    async def delete_phase(self, name: PhaseName) -> Phase:
+        phase = await self.get_phase_by_name(name)
+        await phase.remove()
 
         return phase
 
