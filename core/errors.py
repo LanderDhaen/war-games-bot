@@ -141,6 +141,11 @@ class PhaseNotFound(UserFacingError):
     message = "This phase has not been scheduled for the selected season."
 
 
+class PhaseInMatch(UserFacingError):
+    title = "Invalid Configuration"
+    message = "This phase cannot be deleted because it is referenced by a match."
+
+
 class InvalidTeamName(UserFacingError):
     title = "Invalid Configuration"
     message = (

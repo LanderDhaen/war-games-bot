@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from asyncpg.exceptions import (
     CheckViolationError,
+    ForeignKeyViolationError,
     StringDataRightTruncationError,
     UniqueViolationError,
 )
@@ -40,6 +41,7 @@ from core.errors import (
     InvalidTeamCode,
     InvalidTeamName,
     MissingGuildConfiguration,
+    PhaseInMatch,
     PhaseNotFound,
     PlayerNotInTeam,
     SeasonNotActive,
@@ -200,7 +202,11 @@ class Season(BaseTable):
 
     async def delete_phase(self, name: PhaseName) -> Phase:
         phase = await self.get_phase_by_name(name)
-        await phase.remove()
+
+        try:
+            await phase.remove()
+        except ForeignKeyViolationError:
+            raise PhaseInMatch() from None
 
         return phase
 
@@ -254,9 +260,16 @@ class Season(BaseTable):
             (TeamMember.season == self) & (TeamMember.user_id == user_id)
         )
 
-    async def schedule_match(self, team_a: Team, team_b: Team, thread_id: int) -> Match:
+    async def schedule_match(
+        self,
+        phase: Phase,
+        team_a: Team,
+        team_b: Team,
+        thread_id: int,
+    ) -> Match:
         match = Match(
             season=self,
+            phase=phase,
             team_a=team_a,
             team_b=team_b,
             thread_id=thread_id,
@@ -342,6 +355,7 @@ class TeamMember(BaseTable):
 
 class Match(BaseTable):
     season = ForeignKey(references=Season, on_delete=OnDelete.cascade)
+    phase = ForeignKey(references=Phase, on_delete=OnDelete.restrict)
     team_a = ForeignKey(references=Team, on_delete=OnDelete.restrict)
     team_b = ForeignKey(references=Team, on_delete=OnDelete.restrict)
     thread_id = BigInt(null=True)
