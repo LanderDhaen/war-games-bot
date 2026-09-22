@@ -1,25 +1,27 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from asyncpg.exceptions import (
     CheckViolationError,
+    ForeignKeyViolationError,
     StringDataRightTruncationError,
     UniqueViolationError,
 )
-from piccolo.table import Table, create_db_tables, drop_db_tables
 from piccolo.columns import (
     BigInt,
+    ForeignKey,
+    Integer,
     OnDelete,
     Serial,
-    ForeignKey,
     Text,
-    Integer,
     Timestamptz,
     Varchar,
 )
 from piccolo.columns.defaults.timestamptz import TimestamptzNow
 from piccolo.constraints import Check, Unique
+from piccolo.table import Table
+
 from config import (
     SEASON_CODE_MAX_LENGTH,
     SEASON_NAME_MAX_LENGTH,
@@ -29,6 +31,7 @@ from config import (
     TEAM_NAME_MAX_LENGTH,
 )
 from core.errors import (
+    DuplicatePhase,
     DuplicateSeasonCode,
     DuplicateTeamCode,
     DuplicateTeamName,
@@ -38,16 +41,18 @@ from core.errors import (
     InvalidTeamCode,
     InvalidTeamName,
     MissingGuildConfiguration,
+    PhaseInMatch,
+    PhaseNotFound,
     PlayerNotInTeam,
     SeasonNotActive,
     SeasonNotFound,
     TeamNotFound,
 )
-from data.enums import SeasonStatus, MatchStatus
+from data.enums import MatchStatus, PhaseName, SeasonStatus
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class BaseTable(Table):
@@ -76,7 +81,7 @@ class Guild(BaseTable):
         try:
             await season.save()
         except UniqueViolationError as error:
-            if error.constraint_name == "unique_guild_code":
+            if error.constraint_name == "unique_season_guild_code":
                 raise DuplicateSeasonCode() from None
             raise error
 
@@ -86,7 +91,7 @@ class Guild(BaseTable):
                     raise InvalidSeasonName() from None
                 case "check_season_code_not_empty":
                     raise InvalidSeasonCode() from None
-                case "check_team_size":
+                case "check_season_team_size":
                     raise InvalidSeasonTeamSize() from None
                 case _:
                     raise error
@@ -155,7 +160,7 @@ class Season(BaseTable):
     status = Text(default=SeasonStatus.ACTIVE, choices=SeasonStatus)
     guild = ForeignKey(references=Guild, on_delete=OnDelete.cascade)
 
-    unique_guild_code = Unique([guild, code], name="unique_guild_code")
+    unique_season_guild_code = Unique([guild, code], name="unique_season_guild_code")
     check_season_name_not_empty = Check(
         name != "",
         name="check_season_name_not_empty",
@@ -164,13 +169,46 @@ class Season(BaseTable):
         code != "",
         name="check_season_code_not_empty",
     )
-    check_team_size = Check(
+    check_season_team_size = Check(
         (team_size >= SEASON_TEAM_SIZE_MIN) & (team_size <= SEASON_TEAM_SIZE_MAX),
-        name="check_team_size",
+        name="check_season_team_size",
     )
 
     def __str__(self) -> str:
-        return f"{self.name} • {self.starts_at.strftime("%B %Y")}"
+        return f"{self.name} • {self.starts_at.strftime('%B %Y')}"
+
+    async def schedule_phase(self, name: PhaseName) -> Phase:
+        phase = Phase(name=name, season=self)
+
+        try:
+            await phase.save()
+        except UniqueViolationError as error:
+            if error.constraint_name == "unique_phase_season_name":
+                raise DuplicatePhase() from None
+            raise
+
+        return phase
+
+    async def get_phases(self) -> list[Phase]:
+        return await Phase.objects().where(Phase.season == self).order_by(Phase.created_at)
+
+    async def get_phase_by_name(self, name: PhaseName) -> Phase:
+        phase = await Phase.objects().where((Phase.season == self) & (Phase.name == name)).first()
+
+        if phase is None:
+            raise PhaseNotFound()
+
+        return phase
+
+    async def delete_phase(self, name: PhaseName) -> Phase:
+        phase = await self.get_phase_by_name(name)
+
+        try:
+            await phase.remove()
+        except ForeignKeyViolationError:
+            raise PhaseInMatch() from None
+
+        return phase
 
     async def create_team(self, name: str, code: str) -> Team:
         team = Team(
@@ -183,7 +221,7 @@ class Season(BaseTable):
             await team.save()
         except UniqueViolationError as error:
             match error.constraint_name:
-                case "unique_name_season":
+                case "unique_team_season_name":
                     raise DuplicateTeamName() from None
                 case "unique_team_season_code":
                     raise DuplicateTeamCode() from None
@@ -210,11 +248,7 @@ class Season(BaseTable):
         return await Team.objects().where(Team.season == self).order_by(Team.name)
 
     async def get_team_by_code(self, team_code: str) -> Team:
-        team = (
-            await Team.objects()
-            .where((Team.season == self) & (Team.code == team_code))
-            .first()
-        )
+        team = await Team.objects().where((Team.season == self) & (Team.code == team_code)).first()
 
         if team is None:
             raise TeamNotFound()
@@ -226,9 +260,16 @@ class Season(BaseTable):
             (TeamMember.season == self) & (TeamMember.user_id == user_id)
         )
 
-    async def schedule_match(self, team_a: Team, team_b: Team, thread_id: int) -> Match:
+    async def schedule_match(
+        self,
+        phase: Phase,
+        team_a: Team,
+        team_b: Team,
+        thread_id: int,
+    ) -> Match:
         match = Match(
             season=self,
+            phase=phase,
             team_a=team_a,
             team_b=team_b,
             thread_id=thread_id,
@@ -239,12 +280,22 @@ class Season(BaseTable):
         return match
 
 
+class Phase(BaseTable):
+    name = Text(choices=PhaseName)
+    season = ForeignKey(references=Season, on_delete=OnDelete.cascade)
+
+    unique_phase_season_name = Unique([season, name], name="unique_phase_season_name")
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Team(BaseTable):
     name = Varchar(length=TEAM_NAME_MAX_LENGTH)
     code = Varchar(length=TEAM_CODE_MAX_LENGTH)
     season = ForeignKey(references=Season)
 
-    unique_name_season = Unique([name, season], name="unique_name_season")
+    unique_team_season_name = Unique([season, name], name="unique_team_season_name")
     unique_team_season_code = Unique([season, code], name="unique_team_season_code")
     check_team_name_not_empty = Check(
         name != "",
@@ -260,9 +311,7 @@ class Team(BaseTable):
 
     async def get_members(self) -> list[TeamMember]:
         return (
-            await TeamMember.objects()
-            .where(TeamMember.team == self)
-            .order_by(TeamMember.user_id)
+            await TeamMember.objects().where(TeamMember.team == self).order_by(TeamMember.user_id)
         )
 
     async def add_member(self, user_id: int) -> TeamMember:
@@ -298,12 +347,15 @@ class TeamMember(BaseTable):
     season = ForeignKey(references=Season, on_delete=OnDelete.cascade)
     team = ForeignKey(references=Team, on_delete=OnDelete.cascade)
 
-    unique_user_season = Unique([user_id, season], name="unique_user_season")
-    unique_user_team = Unique([user_id, team], name="unique_user_team")
+    unique_team_member_season_user = Unique(
+        [season, user_id], name="unique_team_member_season_user"
+    )
+    unique_team_member_team_user = Unique([team, user_id], name="unique_team_member_team_user")
 
 
 class Match(BaseTable):
     season = ForeignKey(references=Season, on_delete=OnDelete.cascade)
+    phase = ForeignKey(references=Phase, on_delete=OnDelete.restrict)
     team_a = ForeignKey(references=Team, on_delete=OnDelete.restrict)
     team_b = ForeignKey(references=Team, on_delete=OnDelete.restrict)
     thread_id = BigInt(null=True)
@@ -350,8 +402,3 @@ async def get_guild(guild_id: int) -> Guild:
         raise MissingGuildConfiguration()
 
     return guild
-
-
-async def create_tables() -> None:
-    await drop_db_tables(Guild, Season, Team, TeamMember, Match)
-    await create_db_tables(Guild, Season, Team, TeamMember, Match, if_not_exists=True)

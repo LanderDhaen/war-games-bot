@@ -1,10 +1,10 @@
-from typing import Literal
 import logging
+from typing import Literal
 
 import discord
-
 from discord import app_commands
 from discord.ext import commands
+
 from config import TOKEN
 from core.errors import (
     GuildOnly,
@@ -12,7 +12,7 @@ from core.errors import (
     UnexpectedCommandError,
     UserFacingError,
 )
-from data.database import create_tables
+
 
 class WarGamesBot(commands.Bot):
     def __init__(self):
@@ -22,11 +22,12 @@ class WarGamesBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self):
-        # await create_tables()
-        await self.load_extension("commands.setup") 
+        await self.load_extension("commands.setup")
         await self.load_extension("commands.season")
+        await self.load_extension("commands.phase")
         await self.load_extension("commands.team")
         await self.load_extension("commands.match")
+
 
 bot = WarGamesBot()
 logger = logging.getLogger(__name__)
@@ -67,17 +68,18 @@ async def tree_on_error(
     )
     await send_error_embed(interaction, embed)
 
+
 @bot.command(name="sync")
 @commands.guild_only()
 @commands.is_owner()
 async def sync(ctx: commands.Context, scope: Literal["global", "guild"] = "guild"):
     if scope == "guild":
         bot.tree.copy_global_to(guild=ctx.guild)
-        synced  = await bot.tree.sync(guild=ctx.guild)
+        synced = await bot.tree.sync(guild=ctx.guild)
         await ctx.send(f"{len(synced)} command(s) synced for {ctx.guild.name}.")
     elif scope == "global":
         synced = await bot.tree.sync()
         await ctx.send(f"{len(synced)} command(s) synced globally.")
 
-bot.run(TOKEN)
 
+bot.run(TOKEN)

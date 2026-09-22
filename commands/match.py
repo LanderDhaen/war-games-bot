@@ -8,42 +8,43 @@ from discord.ext import commands
 from core.autocomplete import (
     active_season_autocomplete,
     match_team_b_autocomplete,
+    season_phase_autocomplete,
     season_team_autocomplete,
 )
 from core.checks import get_guild, get_interaction_guild, requires_host
 from core.errors import (
     EmptyMatchTeam,
     InvalidMatchConfiguration,
+    InvalidPhaseName,
     MatchThreadCreationFailed,
     MissingResultsChannelConfiguration,
-    SeasonNotFound,
     TeamNotFound,
     TeamsMustBeDifferent,
 )
+from data.enums import PhaseName
 
 
 @app_commands.guild_only()
-class Match(
-    commands.GroupCog, group_name="match", description="Manage matches for War Games."
-):
+class Match(commands.GroupCog, group_name="match", description="Manage matches for War Games."):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(
-        name="schedule", description="Schedule a match between two teams."
-    )
+    @app_commands.command(name="schedule", description="Schedule a match between two teams.")
     @app_commands.describe(
         season_code="The season where the match will be played.",
+        phase_name="The phase where the match will be played.",
         team_a_code="The first team.",
         team_b_code="The second team.",
     )
     @app_commands.rename(
         season_code="season",
+        phase_name="phase",
         team_a_code="team-a",
         team_b_code="team-b",
     )
     @app_commands.autocomplete(
         season_code=active_season_autocomplete,
+        phase_name=season_phase_autocomplete,
         team_a_code=season_team_autocomplete,
         team_b_code=match_team_b_autocomplete,
     )
@@ -52,6 +53,7 @@ class Match(
         self,
         interaction: discord.Interaction,
         season_code: str,
+        phase_name: str,
         team_a_code: str,
         team_b_code: str,
     ):
@@ -67,12 +69,19 @@ class Match(
             try:
                 channel = await server.fetch_channel(guild.results_channel_id)
             except discord.NotFound:
-                raise MissingResultsChannelConfiguration()
+                raise MissingResultsChannelConfiguration() from None
 
         if not isinstance(channel, discord.TextChannel):
             raise MissingResultsChannelConfiguration()
 
         season = await guild.get_active_season_by_code(season_code)
+
+        try:
+            selected_phase_name = PhaseName(phase_name)
+        except ValueError:
+            raise InvalidPhaseName() from None
+
+        phase = await season.get_phase_by_name(selected_phase_name)
         team_a = await season.get_team_by_code(team_a_code)
 
         if not team_a:
@@ -99,10 +108,10 @@ class Match(
                 type=discord.ChannelType.private_thread,
             )
         except discord.HTTPException:
-            raise MatchThreadCreationFailed()
+            raise MatchThreadCreationFailed() from None
 
         try:
-            await season.schedule_match(team_a, team_b, thread.id)
+            await season.schedule_match(phase, team_a, team_b, thread.id)
         except ForeignKeyViolationError:
             with suppress(discord.HTTPException):
                 await thread.delete()
@@ -115,22 +124,19 @@ class Match(
             raise
 
         thread_message_content = " ".join(
-            f"<@{membership.user_id}>"
-            for membership in team_a_memberships + team_b_memberships
+            f"<@{membership.user_id}>" for membership in team_a_memberships + team_b_memberships
         )
 
         thread_embed = discord.Embed(
             title="Match Information",
-            description=f"The following match has been scheduled in **{season}**.",
+            description=f"The following match has been scheduled for **{phase}** in **{season}**.",
             color=discord.Color.blue(),
         )
 
         thread_embed.add_field(name="Team A", value=team_a.name, inline=True)
         thread_embed.add_field(
             name="Players",
-            value="\n".join(
-                f"• <@{membership.user_id}>" for membership in team_a_memberships
-            ),
+            value="\n".join(f"• <@{membership.user_id}>" for membership in team_a_memberships),
             inline=True,
         )
         thread_embed.add_field(
@@ -140,9 +146,7 @@ class Match(
         thread_embed.add_field(name="Team B", value=team_b.name, inline=True)
         thread_embed.add_field(
             name="Players",
-            value="\n".join(
-                f"• <@{membership.user_id}>" for membership in team_b_memberships
-            ),
+            value="\n".join(f"• <@{membership.user_id}>" for membership in team_b_memberships),
             inline=True,
         )
         thread_embed.add_field(
@@ -155,7 +159,7 @@ class Match(
             title="Match Scheduled",
             description=(
                 f"**{team_a.name}** vs **{team_b.name}** has been "
-                f"scheduled for **{season}** in {thread.mention}"
+                f"scheduled for **{phase}** in **{season}** in {thread.mention}"
             ),
             color=discord.Color.green(),
         )

@@ -1,7 +1,7 @@
 # Commands
 
-Use these commands inside your Discord server. When a command asks for a season
-or team, start typing its name or code and select it from the autocomplete list.
+Use these commands inside your Discord server. When a command asks for a season,
+phase, or team, start typing and select it from the autocomplete list.
 
 ## Setup
 
@@ -46,8 +46,8 @@ will be used to select the season in other commands.
 Display information about a season of War Games, including its name, format,
 status, and number of teams.
 
-| Parameter | Type        | Description                                                                                   |
-| --------- | ----------- | --------------------------------------------------------------------------------------------- |
+| Parameter | Type   | Description                                                   |
+| --------- | ------ | ------------------------------------------------------------- |
 | `season`  | Season | Season to display. Active and finished seasons are available. |
 
 ### `/season finish`
@@ -56,9 +56,39 @@ Finish an active season of War Games.
 
 **Who can use it:** Hosts
 
-| Parameter | Type        | Description              |
-| --------- | ----------- | ------------------------ |
+| Parameter | Type   | Description              |
+| --------- | ------ | ------------------------ |
 | `season`  | Season | Active season to finish. |
+
+## Phase
+
+Manage the tournament stages within an active season. Every phase name can only
+be scheduled once per season.
+
+### `/phase schedule`
+
+Schedule a new phase for an active season. Available phase names range from the
+league stage through the supported knockout rounds.
+
+**Who can use it:** Hosts
+
+| Parameter | Type       | Description                                         |
+| --------- | ---------- | --------------------------------------------------- |
+| `season`  | Season     | Active season where the phase should be scheduled.  |
+| `name`    | Phase name | Phase to schedule, selected from the available list. |
+
+### `/phase delete`
+
+Delete a scheduled phase from an active season.
+
+**Who can use it:** Hosts
+
+| Parameter | Type       | Description                                                   |
+| --------- | ---------- | ------------------------------------------------------------- |
+| `season`  | Season     | Active season containing the phase.                           |
+| `name`    | Phase name | Scheduled phase to delete. Only phases from the season appear. |
+
+A phase referenced by a match cannot be deleted.
 
 ## Team
 
@@ -146,8 +176,9 @@ configured results channel and mentions the players from both teams.
 | Parameter | Type        | Description                                                                    |
 | --------- | ----------- | ------------------------------------------------------------------------------ |
 | `season`  | Season | Active season where the match will be played. |
+| `phase`   | Phase | Scheduled phase where the match will be played. |
 | `team-a`  | Team | First participating team. |
 | `team-b`  | Team | Second participating team. Team A is excluded from the choices. |
 
-Both teams must belong to the selected season, must be different, and must each
-have at least one player.
+The phase and both teams must belong to the selected season. The teams must be
+different and must each have at least one player.

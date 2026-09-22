@@ -1,7 +1,8 @@
-import discord
 from datetime import datetime
-from discord.ext import commands
+
+import discord
 from discord import app_commands
+from discord.ext import commands
 
 from config import (
     SEASON_CODE_MAX_LENGTH,
@@ -11,7 +12,6 @@ from config import (
     SEASON_TEAM_SIZE_MAX,
     SEASON_TEAM_SIZE_MIN,
 )
-
 from core.autocomplete import active_season_autocomplete, season_autocomplete
 from core.checks import get_interaction_guild, requires_host
 from core.errors import (
@@ -21,21 +21,16 @@ from core.errors import (
     InvalidSeasonTeamSize,
     SeasonNotFound,
 )
-from data.enums import SeasonStatus
-
 from data.database import get_guild
+from data.enums import SeasonStatus
 
 
 @app_commands.guild_only()
-class Season(
-    commands.GroupCog, group_name="season", description="Manage seasons for War Games."
-):
+class Season(commands.GroupCog, group_name="season", description="Manage seasons for War Games."):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(
-        name="schedule", description="Schedule a new season of War Games."
-    )
+    @app_commands.command(name="schedule", description="Schedule a new season of War Games.")
     @app_commands.describe(name="The name of the season to schedule.")
     @app_commands.describe(code="The code for the season to schedule.")
     @app_commands.describe(team_size="The number of players in a team.")
@@ -74,7 +69,7 @@ class Season(
         try:
             starts_at = datetime.fromisoformat(raw_starts_at)
         except ValueError:
-            raise InvalidSeasonStart()
+            raise InvalidSeasonStart() from None
 
         season = await guild.start_season(name, code, team_size, starts_at)
 
@@ -123,7 +118,10 @@ class Season(
 
         embed = discord.Embed(
             title="Season Information",
-            description=f"The following season {('was hosted' if is_finished else 'is going on')} in **{server.name}**.",
+            description=(
+                f"The following season "
+                f"{('was hosted' if is_finished else 'is going on')} in **{server.name}**."
+            ),
             color=discord.Color.blue(),
         )
         embed.add_field(name="Name", value=str(season), inline=True)
@@ -142,9 +140,7 @@ class Season(
 
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(
-        name="finish", description="Finish an active season of War Games."
-    )
+    @app_commands.command(name="finish", description="Finish an active season of War Games.")
     @app_commands.describe(season_code="The season that should be updated.")
     @app_commands.rename(season_code="season")
     @app_commands.autocomplete(season_code=active_season_autocomplete)
