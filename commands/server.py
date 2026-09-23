@@ -56,9 +56,7 @@ class Setup(
 
         embed = discord.Embed(
             title="Server Configured",
-            description=(
-                f"The following settings have been uodated in **{guild.name}**:"
-            ),
+            description=(f"The following settings have been uodated in **{guild.name}**:"),
             colour=discord.Colour.green(),
         )
         embed.add_field(
