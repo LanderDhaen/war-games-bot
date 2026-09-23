@@ -43,12 +43,10 @@ class Setup(
         game_channel: discord.TextChannel,
         results_channel: discord.TextChannel,
     ) -> None:
-        guild = interaction.guild
 
-        if guild is None:
-            raise app_commands.NoPrivateMessage()
+        guild = get_interaction_guild(interaction)
 
-        configuration = await configure_server(
+        await configure_server(
             guild_id=guild.id,
             host_role_id=host_role.id,
             participant_role_id=participant_role.id,
@@ -59,9 +57,7 @@ class Setup(
         embed = discord.Embed(
             title="Server Configured",
             description=(
-                "The following settings have been "
-                f"{('created' if configuration._was_created else 'updated')} "
-                f"in **{guild.name}**:"
+                f"The following settings have been uodated in **{guild.name}**:"
             ),
             colour=discord.Colour.green(),
         )

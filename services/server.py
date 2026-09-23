@@ -1,5 +1,6 @@
 from data.database import Guild
 from errors.configs import MissingConfiguration
+from piccolo.query.methods.insert import OnConflictAction
 
 
 async def configure_server(
@@ -8,32 +9,30 @@ async def configure_server(
     participant_role_id: int,
     game_channel_id: int,
     results_channel_id: int,
-) -> Guild:
-    guild = await Guild.objects().get_or_create(
-        Guild.guild_id == guild_id,
-        defaults={
-            Guild.host_role_id: host_role_id,
-            Guild.participant_role_id: participant_role_id,
-            Guild.game_channel_id: game_channel_id,
-            Guild.results_channel_id: results_channel_id,
-        },
+) -> None:
+
+    await (
+      Guild.insert(
+            Guild({
+                Guild.guild_id: guild_id,
+                Guild.host_role_id: host_role_id,
+                Guild.participant_role_id: participant_role_id,
+                Guild.game_channel_id: game_channel_id,
+                Guild.results_channel_id: results_channel_id,
+            })
+        )
+        .on_conflict(
+            target=Guild.guild_id,
+            action=OnConflictAction.do_update,
+            values=[
+                Guild.host_role_id,
+                Guild.participant_role_id,
+                Guild.game_channel_id,
+                Guild.results_channel_id,
+            ],
+        )
     )
-
-    if guild._was_created:
-        return guild
-
-    await guild.update_self(
-        {
-            Guild.host_role_id: host_role_id,
-            Guild.participant_role_id: participant_role_id,
-            Guild.game_channel_id: game_channel_id,
-            Guild.results_channel_id: results_channel_id,
-        }
-    )
-
-    return guild
-
-
+  
 async def get_configuration(guild_id: int) -> Guild:
     guild = await Guild.objects().get(Guild.guild_id == guild_id)
 
