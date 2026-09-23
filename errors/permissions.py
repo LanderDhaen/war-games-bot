@@ -15,6 +15,4 @@ class MissingAdministratorPermission(MissingPermission):
     """Raised when a user does not have Administrator permission."""
 
     def __init__(self):
-        super().__init__(
-            "You need to be an administrator to use this command."
-        )
+        super().__init__("You need to be an administrator to use this command.")
