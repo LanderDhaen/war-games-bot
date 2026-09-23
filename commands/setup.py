@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from core.checks import requires_admin
 from services.setup import configure_server
 
 
@@ -25,8 +26,8 @@ class Setup(
         results_channel="results-channel",
     )
     @app_commands.default_permissions(administrator=True)
-    @app_commands.checks.has_permissions(administrator=True)
     @app_commands.guild_only()
+    @requires_admin()
     async def setup_server(
         self,
         interaction: discord.Interaction,
