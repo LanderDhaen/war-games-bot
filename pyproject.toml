@@ -1,7 +1,7 @@
 [tool.ruff]
 target-version = "py314"
 line-length = 100
-extend-exclude = ["data/piccolo_migrations"]
+extend-exclude = ["data/migrations"]
 
 [tool.ruff.lint]
 select = [

@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from piccolo.conf.apps import AppConfig
 
 from data.database import Guild

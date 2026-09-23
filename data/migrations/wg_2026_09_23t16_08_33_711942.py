@@ -5,15 +5,19 @@ from piccolo.columns.column_types import Timestamptz
 from piccolo.columns.defaults.timestamptz import TimestamptzNow
 from piccolo.columns.indexes import IndexMethod
 
-ID = "2026-09-22T19:39:56:956513"
+ID = "2026-09-23T16:08:33:711942"
 VERSION = "1.36.0"
 DESCRIPTION = "Initial migration"
 
 
 async def forwards():
-    manager = MigrationManager(migration_id=ID, app_name="wg", description=DESCRIPTION)
+    manager = MigrationManager(
+        migration_id=ID, app_name="wg", description=DESCRIPTION
+    )
 
-    manager.add_table(class_name="Guild", tablename="guild", schema=None, columns=None)
+    manager.add_table(
+        class_name="Guild", tablename="guild", schema=None, columns=None
+    )
 
     manager.add_column(
         table_class_name="Guild",
