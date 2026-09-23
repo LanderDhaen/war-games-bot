@@ -3,13 +3,8 @@ from discord import app_commands
 from discord.ext import commands
 
 from core.checks import requires_admin
-from core.context import (
-    get_game_channel,
-    get_host_role,
-    get_interaction_guild,
-    get_participant_role,
-    get_results_channel,
-)
+from core.context import get_interaction_guild
+
 from services.server import configure_server, get_configuration
 
 
@@ -56,7 +51,7 @@ class Setup(
 
         embed = discord.Embed(
             title="Server Configured",
-            description=(f"The following settings have been uodated in **{guild.name}**:"),
+            description=(f"The following settings have been updated in **{guild.name}**:"),
             colour=discord.Colour.green(),
         )
         embed.add_field(
@@ -87,10 +82,10 @@ class Setup(
         guild = get_interaction_guild(interaction)
         configuration = await get_configuration(guild.id)
 
-        host_role = get_host_role(guild, configuration.host_role_id)
-        participant_role = get_participant_role(guild, configuration.participant_role_id)
-        game_channel = get_game_channel(guild, configuration.game_channel_id)
-        results_channel = get_results_channel(guild, configuration.results_channel_id)
+        host_role = guild.get_role(configuration.host_role_id)
+        participant_role = guild.get_role(configuration.participant_role_id)
+        game_channel = guild.get_channel(configuration.game_channel_id)
+        results_channel = guild.get_channel(configuration.results_channel_id)
 
         embed = discord.Embed(
             title="Server Information",
@@ -98,19 +93,23 @@ class Setup(
             colour=discord.Colour.blue(),
         )
         embed.add_field(
-            name="The role that will be assigned to hosts.", value=host_role.mention, inline=False
-        )
-        embed.add_field(
-            name="The role that will be assigned to participants.",
-            value=participant_role.mention,
+            name="The role that will be assigned to hosts.",
+            value=host_role.mention if host_role else "*This role has been deleted*",
             inline=False,
         )
         embed.add_field(
-            name="The channel where games will be posted.", value=game_channel.mention, inline=False
+            name="The role that will be assigned to participants.",
+            value=participant_role.mention if participant_role else "*This role has been deleted*",
+            inline=False,
+        )
+        embed.add_field(
+            name="The channel where games will be posted.",
+            value=game_channel.mention if game_channel else "*This channel has been deleted*",
+            inline=False,
         )
         embed.add_field(
             name="The channel where game results will be posted.",
-            value=results_channel.mention,
+            value=results_channel.mention if results_channel else "*This channel has been deleted*",
             inline=False,
         )
 
