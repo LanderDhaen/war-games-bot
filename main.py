@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands
 
 from config import TOKEN
+from services.server import create_guild, remove_guild
 
 
 class WarGamesBot(commands.Bot):
@@ -31,6 +32,16 @@ async def sync(ctx: commands.Context, scope: Literal["global", "guild"] = "guild
     elif scope == "global":
         synced = await bot.tree.sync()
         await ctx.send(f"{len(synced)} command(s) synced globally.")
+
+
+@bot.event
+async def on_guild_join(guild: discord.Guild) -> None:
+    await create_guild(guild.id)
+
+
+@bot.event
+async def on_guild_remove(guild: discord.Guild) -> None:
+    await remove_guild(guild.id)
 
 
 bot.run(TOKEN)
