@@ -12,3 +12,10 @@ class MissingAdministratorPermission(MissingPermission):
     """Raised when a user does not have Administrator permission."""
 
     description = "You need to be an administrator to use this command."
+
+
+class MissingHostPermission(MissingPermission):
+    """Raised when a user does not have the required host role."""
+
+    description = "You need to have the host role to use this command."
+

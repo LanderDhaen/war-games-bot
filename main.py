@@ -47,10 +47,13 @@ class WarGamesCommandTree(app_commands.CommandTree):
             colour=discord.Colour.red(),
         )
 
-        if interaction.response.is_done():
-            await interaction.followup.send(embed=embed, ephemeral=True)
-        else:
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(embed=embed, ephemeral=True)
+            else:
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+        except discord.HTTPException:
+            logger.exception("Failed to send application command error response")
 
 
 class WarGamesBot(commands.Bot):
@@ -62,6 +65,7 @@ class WarGamesBot(commands.Bot):
 
     async def setup_hook(self) -> None:
         await self.load_extension("commands.server")
+        await self.load_extension("commands.tournament")
 
 
 bot = WarGamesBot()

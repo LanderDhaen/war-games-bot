@@ -5,6 +5,7 @@ from piccolo.columns import (
     ForeignKey,
     OnDelete,
     Serial,
+    Text,
     Timestamptz,
     Varchar,
 )
@@ -47,6 +48,7 @@ class Configuration(IdentityMixin, MetaMixin, Table):
 
 class Tournament(IdentityMixin, MetaMixin, Table):
     name = Varchar(length=90)
+    description = Text(null=True, default=None)
     guild = ForeignKey(references=Guild, null=False, on_delete=OnDelete.restrict)
 
     unique_tournament_name_guild = Unique([name, guild], name="unique_tournament_name_guild")
