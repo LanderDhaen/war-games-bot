@@ -4,7 +4,6 @@ from discord.ext import commands
 
 from core.checks import requires_admin
 from core.context import get_interaction_guild
-
 from services.server import configure_server, get_configuration
 
 
@@ -39,6 +38,8 @@ class Setup(
         results_channel: discord.TextChannel,
     ) -> None:
 
+        await interaction.response.defer()
+
         guild = get_interaction_guild(interaction)
 
         await configure_server(
@@ -71,13 +72,15 @@ class Setup(
             inline=False,
         )
 
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="info", description="Display the configuration for this server.")
     @app_commands.default_permissions(administrator=True)
     @app_commands.guild_only()
     @requires_admin()
     async def display_configuration(self, interaction: discord.Interaction) -> None:
+
+        await interaction.response.defer()
 
         guild = get_interaction_guild(interaction)
         configuration = await get_configuration(guild.id)
@@ -113,7 +116,7 @@ class Setup(
             inline=False,
         )
 
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
 
 async def setup(bot: commands.Bot) -> None:
