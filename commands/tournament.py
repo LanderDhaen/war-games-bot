@@ -67,7 +67,7 @@ class Tournament(commands.GroupCog, group_name="tournament", description="Manage
 
         embed = discord.Embed(
             title="Tournament Information",
-            description=f"The following tournament is hosted in **{guild.name}**.",
+            description=f"The following tournament is hosted in **{guild.name}**:",
             colour=discord.Colour.blue(),
         )
         embed.add_field(name="Name", value=tournament.name, inline=False)
@@ -80,6 +80,31 @@ class Tournament(commands.GroupCog, group_name="tournament", description="Manage
             name="Created",
             value=discord.utils.format_dt(tournament.created_at, style="D"),
             inline=False,
+        )
+
+        await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="list", description="Display the tournaments in this server")
+    @app_commands.guild_only()
+    async def list_tournaments(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer()
+
+        guild = get_interaction_guild(interaction)
+        tournaments = await get_tournaments(guild.id)
+
+        if tournaments:
+            embed_description = f"The following tournaments are hosted in **{guild.name}**:\n\n"
+            embed_description += "\n".join(
+                f"1. {discord.utils.escape_markdown(tournament.name)}"
+                for tournament in tournaments
+            )
+
+        else:
+            embed_description = f"There are currently no tournaments in **{guild.name}**.\n\n"
+            embed_description += "Use `/tournament add` to create a new tournament."
+
+        embed = discord.Embed(
+            title="Tournament List", description=embed_description, colour=discord.Colour.blue()
         )
 
         await interaction.followup.send(embed=embed)
