@@ -4,16 +4,14 @@ from discord.ext import commands
 
 from core.checks import requires_host
 from core.context import get_interaction_guild
-from services.tournament import create_tournament
+from services.tournament import create_tournament, get_tournament, get_tournaments
 
 
-class Tournament(
-    commands.GroupCog, group_name="tournament", description="Manage tournaments of War Games."
-):
+class Tournament(commands.GroupCog, group_name="tournament", description="Manage tournaments"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="add", description="Add a new tournament of War Games.")
+    @app_commands.command(name="add", description="Add a new tournament")
     @app_commands.describe(
         name="The name of the tournament.", description="The description of the tournament."
     )
@@ -47,6 +45,59 @@ class Tournament(
         )
 
         await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="info", description="Display the information about a tournament")
+    @app_commands.describe(tournament_name="The tournament to display.")
+    @app_commands.rename(tournament_name="tournament")
+    @app_commands.guild_only()
+    async def display_tournament(
+        self,
+        interaction: discord.Interaction,
+        tournament_name: str,
+    ) -> None:
+        await interaction.response.defer()
+
+        guild = get_interaction_guild(interaction)
+        tournament = await get_tournament(guild.id, tournament_name)
+
+        embed = discord.Embed(
+            title="Tournament Information",
+            description=f"The following tournament is hosted in **{guild.name}**.",
+            colour=discord.Colour.blue(),
+        )
+        embed.add_field(name="Name", value=tournament.name, inline=False)
+        embed.add_field(
+            name="Description",
+            value=tournament.description or "*This tournament has no description.*",
+            inline=False,
+        )
+        embed.add_field(
+            name="Created",
+            value=discord.utils.format_dt(tournament.created_at, style="D"),
+            inline=False,
+        )
+
+        await interaction.followup.send(embed=embed)
+
+    @display_tournament.autocomplete("tournament_name")
+    async def tournament_autocomplete(
+        self,
+        interaction: discord.Interaction,
+        current: str,
+    ) -> list[app_commands.Choice[str]]:
+
+        guild = interaction.guild
+        if guild is None:
+            return []
+
+        tournaments = await get_tournaments(guild.id)
+        current = current.casefold()
+
+        return [
+            app_commands.Choice(name=tournament.name, value=tournament.name)
+            for tournament in tournaments
+            if current in tournament.name.casefold()
+        ][:25]
 
 
 async def setup(bot: commands.Bot) -> None:
