@@ -4,7 +4,12 @@ from discord.ext import commands
 
 from core.checks import requires_host
 from core.context import get_interaction_guild
-from services.tournament import create_tournament, get_tournament, get_tournaments
+from services.tournament import (
+    create_tournament,
+    delete_tournament,
+    get_tournament,
+    get_tournaments,
+)
 
 
 class Tournament(commands.GroupCog, group_name="tournament", description="Manage tournaments"):
@@ -79,7 +84,31 @@ class Tournament(commands.GroupCog, group_name="tournament", description="Manage
 
         await interaction.followup.send(embed=embed)
 
+    @app_commands.command(name="delete", description="Delete a tournament")
+    @app_commands.describe(tournament_name="The tournament to delete.")
+    @app_commands.rename(tournament_name="tournament")
+    @app_commands.guild_only()
+    @requires_host()
+    async def remove_tournament(
+        self,
+        interaction: discord.Interaction,
+        tournament_name: str,
+    ) -> None:
+        await interaction.response.defer()
+
+        guild = get_interaction_guild(interaction)
+        await delete_tournament(guild.id, tournament_name)
+
+        embed = discord.Embed(
+            title="Tournament Deleted",
+            description=f"**{tournament_name}** has been deleted from **{guild.name}**.",
+            colour=discord.Colour.green(),
+        )
+
+        await interaction.followup.send(embed=embed)
+
     @display_tournament.autocomplete("tournament_name")
+    @remove_tournament.autocomplete("tournament_name")
     async def tournament_autocomplete(
         self,
         interaction: discord.Interaction,

@@ -9,7 +9,7 @@ async def create_tournament(
     name: str,
     description: str | None = None,
 ) -> None:
-    
+
     name = name.strip()
 
     if not name:
@@ -35,6 +35,9 @@ async def create_tournament(
 
 
 async def get_tournament(guild_id: int, tournament_name: str) -> Tournament:
+
+    tournament_name = tournament_name.strip()
+
     tournament = await Tournament.objects().get(
         (Tournament.guild == guild_id) & (Tournament.name == tournament_name)
     )
@@ -47,3 +50,16 @@ async def get_tournament(guild_id: int, tournament_name: str) -> Tournament:
 
 async def get_tournaments(guild_id: int) -> list[Tournament]:
     return await Tournament.objects().where(Tournament.guild == guild_id).order_by(Tournament.name)
+
+
+async def delete_tournament(guild_id: int, tournament_name: str) -> None:
+    tournament_name = tournament_name.strip()
+
+    deleted_tournaments = await (
+        Tournament.delete()
+        .where((Tournament.guild == guild_id) & (Tournament.name == tournament_name))
+        .returning(Tournament.id)
+    )
+
+    if not deleted_tournaments:
+        raise MissingTournament(tournament_name)
