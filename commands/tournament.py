@@ -32,7 +32,21 @@ class Tournament(
 
         await create_tournament(guild.id, name, description)
 
-        await interaction.followup.send("Tournament created successfully.")
+        embed = discord.Embed(
+            title="Tournament Added",
+            description=f"A new War Games tournament has been added in **{guild.name}**",
+            color=discord.Color.green(),
+        )
+
+        embed.add_field(name="Name", value=name, inline=False)
+
+        embed.add_field(
+            name="Description",
+            value=description if description else "*This tournament has no description.*",
+            inline=False,
+        )
+
+        await interaction.followup.send(embed=embed)
 
 
 async def setup(bot: commands.Bot) -> None:

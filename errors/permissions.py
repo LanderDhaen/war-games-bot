@@ -18,4 +18,3 @@ class MissingHostPermission(MissingPermission):
     """Raised when a user does not have the required host role."""
 
     description = "You need to have the host role to use this command."
-
