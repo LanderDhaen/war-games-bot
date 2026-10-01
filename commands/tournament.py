@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from core.autocomplete import tournament_autocomplete
 from core.check import requires_host
 from core.context import get_interaction_guild
 from services.tournament import (
@@ -54,6 +55,7 @@ class Tournament(commands.GroupCog, group_name="tournament", description="Manage
     @app_commands.command(name="info", description="Display the information about a tournament")
     @app_commands.describe(tournament_name="The tournament to display.")
     @app_commands.rename(tournament_name="tournament")
+    @app_commands.autocomplete(tournament_name=tournament_autocomplete)
     @app_commands.guild_only()
     async def display_tournament(
         self,
@@ -95,8 +97,7 @@ class Tournament(commands.GroupCog, group_name="tournament", description="Manage
         if tournaments:
             embed_description = f"The following tournaments are hosted in **{guild.name}**:\n\n"
             embed_description += "\n".join(
-                f"1. {discord.utils.escape_markdown(tournament.name)}"
-                for tournament in tournaments
+                f"1. {discord.utils.escape_markdown(tournament.name)}" for tournament in tournaments
             )
 
         else:
@@ -112,6 +113,7 @@ class Tournament(commands.GroupCog, group_name="tournament", description="Manage
     @app_commands.command(name="delete", description="Delete a tournament")
     @app_commands.describe(tournament_name="The tournament to delete.")
     @app_commands.rename(tournament_name="tournament")
+    @app_commands.autocomplete(tournament_name=tournament_autocomplete)
     @app_commands.guild_only()
     @requires_host()
     async def remove_tournament(
