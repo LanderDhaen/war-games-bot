@@ -13,6 +13,8 @@ from piccolo.columns.defaults.timestamptz import TimestamptzNow
 from piccolo.constraints import Unique
 from piccolo.table import Table
 
+from data.enum import PhaseEnum
+
 
 def utc_now() -> datetime:
     return datetime.now(UTC)
@@ -52,3 +54,14 @@ class Tournament(IdentityMixin, MetaMixin, Table):
     guild = ForeignKey(references=Guild, null=False, on_delete=OnDelete.restrict)
 
     unique_tournament_name_guild = Unique([name, guild], name="unique_tournament_name_guild")
+
+
+class Phase(IdentityMixin, MetaMixin, Table):
+    format = Text(choices=PhaseEnum)
+    tournament = ForeignKey(
+        references=Tournament, null=False, on_delete=OnDelete.restrict
+    )
+
+    unique_phase__format_tournament = Unique(
+        [format, tournament], name="unique_phase__format_tournament"
+    )

@@ -66,6 +66,7 @@ class WarGamesBot(commands.Bot):
     async def setup_hook(self) -> None:
         await self.load_extension("commands.server")
         await self.load_extension("commands.tournament")
+        await self.load_extension("commands.phase")
 
 
 bot = WarGamesBot()
