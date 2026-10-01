@@ -1,7 +1,7 @@
 from piccolo.query.methods.insert import OnConflictAction
 
 from data.database import Configuration, Guild, utc_now
-from errors.configs import MissingConfiguration
+from errors.config import MissingConfiguration
 
 
 async def create_guild(guild_id: int) -> None:

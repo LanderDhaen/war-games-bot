@@ -1,7 +1,7 @@
 from asyncpg.exceptions import UniqueViolationError
 
 from data.database import Tournament
-from errors.tournaments import DuplicateTournament, InvalidTournamentName, MissingTournament
+from errors.tournament import DuplicateTournament, InvalidTournamentName, MissingTournament
 
 
 async def create_tournament(

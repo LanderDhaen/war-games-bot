@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from core.checks import requires_host
+from core.check import requires_host
 from core.context import get_interaction_guild
 from services.tournament import (
     create_tournament,

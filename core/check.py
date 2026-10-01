@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 
 from core.context import get_host_role, get_interaction_guild
-from errors.permissions import MissingAdministratorPermission, MissingHostPermission
+from errors.permission import MissingAdministratorPermission, MissingHostPermission
 from services.server import get_configuration
 
 

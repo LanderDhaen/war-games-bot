@@ -1,6 +1,6 @@
 from discord import Guild, Interaction, Role, TextChannel, app_commands
 
-from errors.configs import (
+from errors.config import (
     MissingGameChannelConfiguration,
     MissingHostRoleConfiguration,
     MissingParticipantRoleConfiguration,

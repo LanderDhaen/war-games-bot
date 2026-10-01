@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from core.checks import requires_admin
+from core.check import requires_admin
 from core.context import get_interaction_guild
 from services.server import configure_server, get_configuration
 
